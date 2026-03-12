@@ -1,18 +1,97 @@
 import { serve } from "@hono/node-server";
+import { createNodeWebSocket } from "@hono/node-ws";
 import { Hono } from "hono";
+import type { WSContext } from "hono/ws";
+import { startDiscoveryServer } from "./discovery.js";
 
 const app = new Hono();
 
+const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
+
+const clients = new Map<string, WSContext<WebSocket>>();
+
 app.get("/", (c) => {
-  return c.text("Hello Hono!");
+  return c.json({
+    message: "cool",
+  });
 });
 
-serve(
+app.post("/admin/set-time", async (c) => {
+  const { deviceId, seconds } = await c.req.json();
+
+  const ws = clients.get(deviceId);
+
+  if (!ws) {
+    return c.json({ error: "PC not connected" }, 404);
+  }
+
+  ws.send(
+    JSON.stringify({
+      type: "session:init",
+      payload: seconds,
+    }),
+  );
+
+  return c.json({ success: true });
+});
+
+app.post("/admin/stop", async (c) => {
+  const { deviceId, seconds } = await c.req.json();
+
+  const ws = clients.get(deviceId);
+
+  if (!ws) {
+    return c.json({ error: "PC not connected" }, 404);
+  }
+
+  ws.send(
+    JSON.stringify({
+      type: "session:stop",
+      payload: seconds,
+    }),
+  );
+
+  return c.json({ success: true });
+});
+
+app.get(
+  "/ws",
+  upgradeWebSocket((c) => {
+    return {
+      onMessage(event, ws) {
+        handleEvent(JSON.parse(event.data.toString()), ws);
+      },
+      onClose: () => {
+        console.log("Connection closed");
+      },
+    };
+  }),
+);
+
+const server = serve(
   {
     fetch: app.fetch,
-    port: 3000,
+    port: 5000,
   },
   (info) => {
     console.log(`Server is running on http://localhost:${info.port}`);
   },
 );
+
+const handleEvent = (
+  event: { type: string; payload?: unknown },
+  ws: WSContext<WebSocket>,
+): void => {
+  switch (event.type) {
+    case "client:ready":
+      clients.set(event.payload as string, ws);
+      console.log("new client connected", event.payload);
+      break;
+    default:
+      console.warn("unknown event", event.type);
+  }
+};
+
+startDiscoveryServer();
+
+injectWebSocket(server);
