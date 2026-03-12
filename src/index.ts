@@ -35,10 +35,11 @@ app.get("/devices", (c) => {
   });
 });
 
-app.post("/admin/set-time", async (c) => {
-  const { deviceId, seconds } = await c.req.json();
+app.post("/devices/:id/add-time", async (c) => {
+  const id = c.req.param("id");
+  const { seconds } = await c.req.json();
 
-  const ws = clients.get(deviceId);
+  const ws = clients.get(id);
 
   if (!ws) {
     return c.json({ error: "PC not connected" }, 404);
@@ -46,7 +47,7 @@ app.post("/admin/set-time", async (c) => {
 
   ws.send(
     JSON.stringify({
-      type: "session:init",
+      type: "session:add-time",
       payload: seconds,
     }),
   );
