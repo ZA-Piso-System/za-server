@@ -3,6 +3,7 @@ import { createNodeWebSocket } from "@hono/node-ws";
 import { Hono } from "hono";
 import type { WSContext } from "hono/ws";
 import { startDiscoveryServer } from "./discovery.js";
+import { cors } from "hono/cors";
 
 const app = new Hono();
 
@@ -10,9 +11,27 @@ const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
 
 const clients = new Map<string, WSContext<WebSocket>>();
 
+app.use(
+  "*",
+  cors({
+    origin: "http://localhost:3000",
+    allowHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+  }),
+);
+
 app.get("/", (c) => {
   return c.json({
     message: "cool",
+  });
+});
+
+app.get("/devices", (c) => {
+  return c.json({
+    items: Array.from(clients, ([id, value]) => ({
+      id,
+      status: "todo",
+    })),
   });
 });
 
