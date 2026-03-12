@@ -52,13 +52,13 @@ app.post("/devices/:id/add-time", async (c) => {
     }),
   );
 
-  return c.json({ success: true });
+  return c.json({ message: "Time added successfully." });
 });
 
-app.post("/admin/stop", async (c) => {
-  const { deviceId, seconds } = await c.req.json();
+app.post("/devices/:id/stop", async (c) => {
+  const id = c.req.param("id");
 
-  const ws = clients.get(deviceId);
+  const ws = clients.get(id);
 
   if (!ws) {
     return c.json({ error: "PC not connected" }, 404);
@@ -67,11 +67,10 @@ app.post("/admin/stop", async (c) => {
   ws.send(
     JSON.stringify({
       type: "session:stop",
-      payload: seconds,
     }),
   );
 
-  return c.json({ success: true });
+  return c.json({ message: "Session stopped successfully." });
 });
 
 app.get(
