@@ -1,17 +1,16 @@
+import { startDiscoveryServer } from "@/discovery";
+import { auth } from "@/lib/auth";
+import { clients } from "@/lib/clients";
 import { serve } from "@hono/node-server";
 import { createNodeWebSocket } from "@hono/node-ws";
 import { Hono } from "hono";
-import type { WSContext } from "hono/ws";
 import { cors } from "hono/cors";
-import { startDiscoveryServer } from "@/discovery";
-import { auth } from "@/lib/auth";
-import env from "@/common/env.type";
+import type { WSContext } from "hono/ws";
+import devicesRoute from "@/routes/devices.route";
 
 const app = new Hono();
 
 const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
-
-const clients = new Map<string, WSContext<WebSocket>>();
 
 app.use(
   "*",
@@ -24,58 +23,7 @@ app.use(
 
 app.on(["POST", "GET"], "/api/v1/auth/*", (c) => auth.handler(c.req.raw));
 
-app.get("/", (c) => {
-  return c.json({
-    message: "cool",
-  });
-});
-
-app.get("/devices", (c) => {
-  return c.json({
-    items: Array.from(clients, ([id, value]) => ({
-      id,
-      status: "todo",
-    })),
-  });
-});
-
-app.post("/devices/:id/add-time", async (c) => {
-  const id = c.req.param("id");
-  const { seconds } = await c.req.json();
-
-  const ws = clients.get(id);
-
-  if (!ws) {
-    return c.json({ error: "PC not connected" }, 404);
-  }
-
-  ws.send(
-    JSON.stringify({
-      type: "session:add-time",
-      payload: seconds,
-    }),
-  );
-
-  return c.json({ message: "Time added successfully." });
-});
-
-app.post("/devices/:id/stop", async (c) => {
-  const id = c.req.param("id");
-
-  const ws = clients.get(id);
-
-  if (!ws) {
-    return c.json({ error: "PC not connected" }, 404);
-  }
-
-  ws.send(
-    JSON.stringify({
-      type: "session:stop",
-    }),
-  );
-
-  return c.json({ message: "Session stopped successfully." });
-});
+app.route("/api/v1", devicesRoute);
 
 app.get(
   "/ws",
