@@ -1,3 +1,4 @@
+import { SessionEvents } from "@/common/constants/session-events.constant";
 import { clients } from "@/lib/clients";
 import { authMiddleware } from "@/middlewares/auth.middleware";
 import { Hono } from "hono";
@@ -27,7 +28,7 @@ route.post("/devices/:id/add-time", async (c) => {
 
   ws.send(
     JSON.stringify({
-      type: "session:add-time",
+      type: SessionEvents.AddTime,
       payload: seconds,
     }),
   );
@@ -46,7 +47,7 @@ route.post("/devices/:id/stop", async (c) => {
 
   ws.send(
     JSON.stringify({
-      type: "session:stop",
+      type: SessionEvents.Stop,
     }),
   );
 

@@ -7,6 +7,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import type { WSContext } from "hono/ws";
 import devicesRoute from "@/routes/devices.route";
+import { ClientEvents } from "@/common/constants/client-events.constant";
 
 const app = new Hono();
 
@@ -49,14 +50,18 @@ const server = serve(
   },
 );
 
+// TODO:
 const handleEvent = (
   event: { type: string; payload?: unknown },
   ws: WSContext<WebSocket>,
 ): void => {
   switch (event.type) {
-    case "client:ready":
+    case ClientEvents.Ready:
       clients.set(event.payload as string, ws);
       console.log("new client connected", event.payload);
+      break;
+    case ClientEvents.Heartbeat:
+      clients.set(event.payload.id, { ws, ...event.payload });
       break;
     default:
       console.warn("unknown event", event.type);
