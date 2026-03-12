@@ -2,8 +2,10 @@ import { serve } from "@hono/node-server";
 import { createNodeWebSocket } from "@hono/node-ws";
 import { Hono } from "hono";
 import type { WSContext } from "hono/ws";
-import { startDiscoveryServer } from "./discovery.js";
 import { cors } from "hono/cors";
+import { startDiscoveryServer } from "@/discovery";
+import { auth } from "@/lib/auth";
+import env from "@/common/env.type";
 
 const app = new Hono();
 
@@ -14,11 +16,13 @@ const clients = new Map<string, WSContext<WebSocket>>();
 app.use(
   "*",
   cors({
-    origin: "http://localhost:3000",
+    origin: ["http://localhost:3000"],
     allowHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   }),
 );
+
+app.on(["POST", "GET"], "/api/v1/auth/*", (c) => auth.handler(c.req.raw));
 
 app.get("/", (c) => {
   return c.json({
