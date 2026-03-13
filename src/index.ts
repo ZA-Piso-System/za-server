@@ -5,8 +5,10 @@ import { createNodeWebSocket } from "@hono/node-ws";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import type { WSContext } from "hono/ws";
-import devicesRoute from "@/routes/devices.route";
-import { ClientEvents } from "@/common/constants/client-events.constant";
+import clientsRoute from "@/routes/clients.route";
+import { ClientEvent } from "@/common/types/client-event.type";
+import { ServerEvent } from "@/common/types/server-event.type";
+import { Client } from "@/common/types/client.type";
 
 const app = new Hono();
 
@@ -23,7 +25,7 @@ app.use(
 
 app.on(["POST", "GET"], "/api/v1/auth/*", (c) => auth.handler(c.req.raw));
 
-app.route("/api/v1", devicesRoute);
+app.route("/api/v1", clientsRoute);
 
 app.get(
   "/ws",
@@ -55,12 +57,23 @@ const handleEvent = (
   ws: WSContext<WebSocket>,
 ): void => {
   switch (event.type) {
-    case ClientEvents.Ready:
-      clients.set(event.payload as string, ws);
-      console.log("new client connected", event.payload);
+    case ClientEvent.Ready:
+      {
+        const payload = event.payload as Client;
+        clients.set(payload.deviceId, { ws, ...payload });
+        ws.send(
+          JSON.stringify({
+            type: ServerEvent.Ack,
+            payload: {},
+          }),
+        );
+      }
       break;
-    case ClientEvents.Heartbeat:
-      // clients.set(event.payload.id, { ws, ...event.payload });
+    case ClientEvent.Heartbeat:
+      {
+        const payload = event.payload as Client;
+        clients.set(payload.deviceId, { ws, ...payload });
+      }
       break;
     default:
       console.warn("unknown event", event.type);
