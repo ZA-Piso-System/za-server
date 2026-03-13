@@ -4,7 +4,8 @@ export interface Client {
   deviceId: string;
   pcNo: number;
   status: Status;
-  startAt: number;
+  startAt: number | null;
+  endAt: number | null;
   remainingSeconds: number;
   lastSeen: number;
 }

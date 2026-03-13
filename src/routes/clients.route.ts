@@ -18,11 +18,32 @@ route.get("/clients", async (c) => {
           pcNo: value.pcNo,
           status: value.status,
           startAt: value.startAt,
+          endAt: value.endAt,
           remainingSeconds: value.remainingSeconds,
           lastSeen: value.lastSeen,
         }) satisfies Client,
     ),
   });
+});
+
+route.get("/clients/:id", async (c) => {
+  const id = c.req.param("id");
+
+  const serverClient = clients.get(id);
+
+  if (!serverClient) {
+    return c.json({ message: "PC not connected" }, 404);
+  }
+
+  return c.json({
+    deviceId: serverClient.deviceId,
+    pcNo: serverClient.pcNo,
+    status: serverClient.status,
+    startAt: serverClient.startAt,
+    endAt: serverClient.endAt,
+    remainingSeconds: serverClient.remainingSeconds,
+    lastSeen: serverClient.lastSeen,
+  } satisfies Client);
 });
 
 route.post("/clients/:id/add-time", async (c) => {
