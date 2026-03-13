@@ -1,4 +1,3 @@
-import { startDiscoveryServer } from "@/discovery";
 import { auth } from "@/lib/auth";
 import { clients } from "@/lib/clients";
 import { serve } from "@hono/node-server";
@@ -61,13 +60,11 @@ const handleEvent = (
       console.log("new client connected", event.payload);
       break;
     case ClientEvents.Heartbeat:
-      clients.set(event.payload.id, { ws, ...event.payload });
+      // clients.set(event.payload.id, { ws, ...event.payload });
       break;
     default:
       console.warn("unknown event", event.type);
   }
 };
-
-startDiscoveryServer();
 
 injectWebSocket(server);
