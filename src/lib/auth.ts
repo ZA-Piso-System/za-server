@@ -32,7 +32,14 @@ export const auth = betterAuth({
       clientSecret: env.GOOGLE_CLIENT_SECRET,
     },
   },
-  trustedOrigins: ["http://localhost:3000"],
+  advanced: {
+    defaultCookieAttributes: {
+      secure: false,
+      httpOnly: true,
+      sameSite: "lax",
+    },
+  },
+  trustedOrigins: ["http://localhost:3000", "http://192.168.100.197:3000"],
   plugins: [
     customSession(async ({ user, session }) => {
       const role = await getUserRole(user.id);
