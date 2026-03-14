@@ -22,6 +22,9 @@ export const auth = betterAuth({
   verification: {
     modelName: "verifications",
   },
+  emailAndPassword: {
+    enabled: true,
+  },
   socialProviders: {
     google: {
       prompt: "select_account",

@@ -6,6 +6,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import type { WSContext } from "hono/ws";
 import clientsRoute from "@/routes/clients.route";
+import accountRoute from "@/routes/account.route";
 import { ClientEvent } from "@/common/types/client-event.type";
 import { ServerEvent } from "@/common/types/server-event.type";
 import { Client } from "@/common/types/client.type";
@@ -26,6 +27,7 @@ app.use(
 app.on(["POST", "GET"], "/api/v1/auth/*", (c) => auth.handler(c.req.raw));
 
 app.route("/api/v1", clientsRoute);
+app.route("/api/v1", accountRoute);
 
 app.get(
   "/ws",
