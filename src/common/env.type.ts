@@ -25,7 +25,8 @@ export const EnvSchema = z.object({
     "trace",
     "silent",
   ]),
-  DATABASE_URL: z.string().url(),
+  ALLOWED_ORIGINS: z.string(),
+  DATABASE_URL: z.url(),
   DATABASE_LOGGER: z
     .string()
     .transform((value) => value === "true")

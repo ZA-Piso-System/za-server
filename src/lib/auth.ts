@@ -39,7 +39,7 @@ export const auth = betterAuth({
       sameSite: "lax",
     },
   },
-  trustedOrigins: ["http://localhost:3000", "http://192.168.100.197:3000"],
+  trustedOrigins: env.ALLOWED_ORIGINS.split(","),
   plugins: [
     customSession(async ({ user, session }) => {
       const role = await getUserRole(user.id);

@@ -10,6 +10,7 @@ import accountRoute from "@/routes/account.route";
 import { ClientEvent } from "@/common/types/client-event.type";
 import { ServerEvent } from "@/common/types/server-event.type";
 import { Client } from "@/common/types/client.type";
+import env from "@/common/env.type";
 
 const app = new Hono();
 
@@ -18,7 +19,7 @@ const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
 app.use(
   "*",
   cors({
-    origin: ["http://localhost:3000", "http://192.168.100.197:3000"],
+    origin: env.ALLOWED_ORIGINS.split(","),
     allowHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   }),
