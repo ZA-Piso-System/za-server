@@ -27,6 +27,7 @@ route.post("/devices/register", async (c) => {
       macAddress: parsedData.macAddress,
       status: DeviceStatus.Offline,
     })
+    .where(eq(devices.id, existingDevice.id))
     .returning();
 
   return c.json({
