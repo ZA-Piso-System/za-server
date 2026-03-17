@@ -1,12 +1,9 @@
 import { auth } from "@/lib/auth";
-import { authMiddleware } from "@/middlewares/auth.middleware";
 import { Hono } from "hono";
 
 const route = new Hono();
 
-route.use("*", authMiddleware);
-
-route.post("/account/set-password", async (c) => {
+route.post("/set-password", async (c) => {
   const { password } = await c.req.json();
 
   await auth.api.setPassword({

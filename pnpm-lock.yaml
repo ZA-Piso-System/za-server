@@ -26,12 +26,18 @@ importers:
       drizzle-orm:
         specifier: ^0.45.1
         version: 0.45.1(@types/pg@8.18.0)(kysely@0.28.11)(pg@8.20.0)
+      drizzle-zod:
+        specifier: ^0.8.3
+        version: 0.8.3(drizzle-orm@0.45.1(@types/pg@8.18.0)(kysely@0.28.11)(pg@8.20.0))(zod@4.3.6)
       hono:
         specifier: ^4.12.7
         version: 4.12.7
       pg:
         specifier: ^8.20.0
         version: 8.20.0
+      wakeonlan:
+        specifier: ^0.1.0
+        version: 0.1.0
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -824,6 +830,12 @@ packages:
       sqlite3:
         optional: true
 
+  drizzle-zod@0.8.3:
+    resolution: {integrity: sha512-66yVOuvGhKJnTdiqj1/Xaaz9/qzOdRJADpDa68enqS6g3t0kpNkwNYjUuaeXgZfO/UWuIM9HIhSlJ6C5ZraMww==}
+    peerDependencies:
+      drizzle-orm: '>=0.36.0'
+      zod: ^3.25.0 || ^4.0.0
+
   esbuild-register@3.6.0:
     resolution: {integrity: sha512-H2/S7Pm8a9CL1uhp9OvjwrBh5Pvx0H8qVOxNu8Wed9Y7qv56MPtq+GGM8RJpq6glYJn9Wspr8uw7l55uyinNeg==}
     peerDependencies:
@@ -1025,6 +1037,9 @@ packages:
 
   undici-types@6.21.0:
     resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
+
+  wakeonlan@0.1.0:
+    resolution: {integrity: sha512-jsXuN8l7B21g7V276kV/30I/9AxZJ0xFGRWSAjl+Q1MBPiV91DPnYSOT6AhpeNhsaFCweFvcmadjqZ8ZGnYfXQ==}
 
   webidl-conversions@7.0.0:
     resolution: {integrity: sha512-VwddBukDzu71offAQR975unBIGqfKZpM+8ZX6ySk8nYhVoo5CYaZyzt3YBvYtRtO+aoGlqxPg/B87NGVZ/fu6g==}
@@ -1453,6 +1468,11 @@ snapshots:
       kysely: 0.28.11
       pg: 8.20.0
 
+  drizzle-zod@0.8.3(drizzle-orm@0.45.1(@types/pg@8.18.0)(kysely@0.28.11)(pg@8.20.0))(zod@4.3.6):
+    dependencies:
+      drizzle-orm: 0.45.1(@types/pg@8.18.0)(kysely@0.28.11)(pg@8.20.0)
+      zod: 4.3.6
+
   esbuild-register@3.6.0(esbuild@0.25.12):
     dependencies:
       debug: 4.4.3
@@ -1679,6 +1699,8 @@ snapshots:
   typescript@5.9.3: {}
 
   undici-types@6.21.0: {}
+
+  wakeonlan@0.1.0: {}
 
   webidl-conversions@7.0.0: {}
 

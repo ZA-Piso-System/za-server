@@ -1,3 +1,6 @@
+CREATE TYPE "public"."device_session_status" AS ENUM('pending', 'active', 'expired', 'terminated');--> statement-breakpoint
+CREATE TYPE "public"."device_status" AS ENUM('pending', 'offline', 'online');--> statement-breakpoint
+CREATE TYPE "public"."device_type" AS ENUM('pc', 'tablet', 'phone');--> statement-breakpoint
 CREATE TYPE "public"."user_role" AS ENUM('admin', 'user');--> statement-breakpoint
 CREATE TABLE "accounts" (
 	"id" text PRIMARY KEY NOT NULL,
@@ -11,6 +14,29 @@ CREATE TABLE "accounts" (
 	"refresh_token_expires_at" timestamp,
 	"scope" text,
 	"password" text,
+	"created_at" timestamp NOT NULL,
+	"updated_at" timestamp NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "device_sessions" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"device_id" uuid NOT NULL,
+	"status" "device_session_status" DEFAULT 'pending' NOT NULL,
+	"allocated_seconds" integer NOT NULL,
+	"start_at" timestamp,
+	"end_at" timestamp,
+	"last_seen" timestamp,
+	"created_at" timestamp NOT NULL,
+	"updated_at" timestamp NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "devices" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"device_number" integer NOT NULL,
+	"mac_address" text,
+	"type" "device_type" NOT NULL,
+	"registration_token" text NOT NULL,
+	"status" "device_status" DEFAULT 'pending' NOT NULL,
 	"created_at" timestamp NOT NULL,
 	"updated_at" timestamp NOT NULL
 );
@@ -49,4 +75,5 @@ CREATE TABLE "verifications" (
 );
 --> statement-breakpoint
 ALTER TABLE "accounts" ADD CONSTRAINT "accounts_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "device_sessions" ADD CONSTRAINT "device_sessions_device_id_devices_id_fk" FOREIGN KEY ("device_id") REFERENCES "public"."devices"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "sessions" ADD CONSTRAINT "sessions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
