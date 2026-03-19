@@ -7,6 +7,7 @@ import db from "@/db";
 import { deviceSessions } from "@/db/schemas";
 import { devices } from "@/db/schemas/devices.schema";
 import { clients } from "@/lib/clients";
+import { logger } from "@/lib/pino.lib";
 import { randomBytes } from "crypto";
 import { and, eq, inArray } from "drizzle-orm";
 import { Hono } from "hono";
@@ -68,19 +69,25 @@ route.post("/:id/add-time", async (c) => {
   const id = c.req.param("id");
   const { seconds } = await c.req.json();
 
-  console.log("# Add Time API");
+  logger.info({ id }, "Add Time API");
 
   const device = await db.query.devices.findFirst({
     where: eq(devices.id, id),
   });
 
   if (!device) {
-    console.log("- Device not found");
+    logger.info({ id }, "Device not found");
     return c.json({ message: "Device not found." }, 404);
   }
 
   if (!device.macAddress || device.status === DeviceStatus.Pending) {
-    console.log("- Device is not registered");
+    logger.info(
+      {
+        deviceNumber: device.deviceNumber,
+        type: device.type,
+      },
+      "Device is not registered",
+    );
     return c.json({ message: "Device is not registered." }, 404);
   }
 
@@ -95,11 +102,24 @@ route.post("/:id/add-time", async (c) => {
   });
 
   if (device.status === DeviceStatus.Offline) {
-    console.log("- Device is offline");
+    logger.info(
+      {
+        deviceNumber: device.deviceNumber,
+        type: device.type,
+      },
+      "Device is offline",
+    );
 
     // No pending/active session
     if (!pendingOrActiveSession) {
-      console.log("- No pending/active session. Creating new Pending session.");
+      logger.info(
+        {
+          deviceNumber: device.deviceNumber,
+          type: device.type,
+          seconds,
+        },
+        "No pending/active session. Creating new Pending session.",
+      );
 
       await db.insert(deviceSessions).values({
         deviceId: device.id,
@@ -107,7 +127,14 @@ route.post("/:id/add-time", async (c) => {
         allocatedSeconds: seconds,
       });
     } else {
-      console.log("- Found pending/active session. Updating it.");
+      logger.info(
+        {
+          deviceNumber: device.deviceNumber,
+          type: device.type,
+          seconds,
+        },
+        "Found pending/active session. Updating it.",
+      );
 
       // Has pending/active then update allocatedSeconds & endAt
       const allocatedSeconds =
@@ -126,19 +153,38 @@ route.post("/:id/add-time", async (c) => {
         .where(eq(deviceSessions.id, pendingOrActiveSession.id));
     }
 
-    console.log("- Turning on device");
+    logger.info(
+      {
+        deviceNumber: device.deviceNumber,
+        type: device.type,
+      },
+      "Turning on device",
+    );
     wakeonlan(device.macAddress);
   }
 
   if (device.status === DeviceStatus.Online) {
-    console.log("- Device is online");
+    logger.info(
+      {
+        deviceNumber: device.deviceNumber,
+        type: device.type,
+      },
+      "Device is online",
+    );
 
     let startAt: Date | null = null;
     let endAt: Date | null = null;
 
     // No pending/active session
     if (!pendingOrActiveSession) {
-      console.log("- No pending/active session. Creating new session.");
+      logger.info(
+        {
+          deviceNumber: device.deviceNumber,
+          type: device.type,
+          seconds,
+        },
+        "No pending/active session. Creating new session.",
+      );
 
       startAt = new Date();
       endAt = new Date(startAt.getTime() + seconds * 1_000);
@@ -151,7 +197,14 @@ route.post("/:id/add-time", async (c) => {
         endAt,
       });
     } else {
-      console.log("- Found pending/active session. Updating it.");
+      logger.info(
+        {
+          deviceNumber: device.deviceNumber,
+          type: device.type,
+          seconds,
+        },
+        "Found pending/active session. Updating it.",
+      );
 
       // Has pending/active then update allocatedSeconds & endAt
       const allocatedSeconds =
@@ -174,7 +227,15 @@ route.post("/:id/add-time", async (c) => {
     const serverClient = clients.get(id);
 
     if (serverClient) {
-      console.log("- Sending session");
+      logger.info(
+        {
+          deviceNumber: device.deviceNumber,
+          type: device.type,
+          session: { startAt, endAt },
+        },
+        "Sending session",
+      );
+
       serverClient.ws.send(
         JSON.stringify({
           type: SessionEvent.AddTime,

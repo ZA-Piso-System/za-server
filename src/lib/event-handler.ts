@@ -8,6 +8,7 @@ import { CustomWebscoket } from "@/common/types/websocket.type";
 import db from "@/db";
 import { devices, deviceSessions } from "@/db/schemas";
 import { clients } from "@/lib/clients";
+import { logger } from "@/lib/pino.lib";
 import { and, eq, inArray } from "drizzle-orm";
 
 export const eventHandler = async (
@@ -17,9 +18,10 @@ export const eventHandler = async (
   switch (event.type) {
     case ClientEvent.Ready:
       {
-        console.log("# Client Ready");
-
         const payload = event.payload as Client;
+
+        logger.info(payload, "Received client ready");
+
         const device = await db.query.devices.findFirst({
           where: eq(devices.id, payload.id),
         });
@@ -27,13 +29,27 @@ export const eventHandler = async (
         ws.deviceId = payload.id;
         clients.set(payload.id, { id: payload.id, ws });
 
-        console.log("- Updating device status to Online");
+        logger.info(
+          {
+            deviceNumber: device.deviceNumber,
+            type: device.type,
+          },
+          "Updating device status to Online",
+        );
+
         await db
           .update(devices)
           .set({ status: DeviceStatus.Online })
           .where(eq(devices.id, payload.id));
 
-        console.log("- Fetching pending or active device session");
+        logger.info(
+          {
+            deviceNumber: device.deviceNumber,
+            type: device.type,
+          },
+          "Fetching pending or active device session",
+        );
+
         const pendingOrActiveSession = await db.query.deviceSessions.findFirst({
           where: and(
             eq(deviceSessions.deviceId, payload.id),
@@ -45,8 +61,12 @@ export const eventHandler = async (
         });
 
         if (!pendingOrActiveSession) {
-          console.log(
-            "- No active device session found. Sending null session.",
+          logger.info(
+            {
+              deviceNumber: device.deviceNumber,
+              type: device.type,
+            },
+            "No active device session found. Sending null session.",
           );
 
           ws.send(
@@ -61,17 +81,35 @@ export const eventHandler = async (
           return;
         }
 
-        console.log("- Found device session.");
+        logger.info(
+          {
+            deviceNumber: device.deviceNumber,
+            type: device.type,
+          },
+          "Found device session.",
+        );
 
         if (pendingOrActiveSession.status === DeviceSessionStatus.Pending) {
-          console.log("- Device session is Pending");
+          logger.info(
+            {
+              deviceNumber: device.deviceNumber,
+              type: device.type,
+            },
+            "Device session is Pending",
+          );
 
           const startAt = new Date();
           const endAt = new Date(
             Date.now() + pendingOrActiveSession.allocatedSeconds * 1_000,
           );
 
-          console.log("- Updating device session to Active");
+          logger.info(
+            {
+              deviceNumber: device.deviceNumber,
+              type: device.type,
+            },
+            "Updating device session to Active",
+          );
           await db
             .update(deviceSessions)
             .set({
@@ -81,7 +119,17 @@ export const eventHandler = async (
             })
             .where(eq(deviceSessions.id, pendingOrActiveSession.id));
 
-          console.log("- Sending session", { startAt, endAt });
+          logger.info(
+            {
+              deviceNumber: device.deviceNumber,
+              type: device.type,
+              session: {
+                startAt,
+                endAt,
+              },
+            },
+            "Sending session",
+          );
           ws.send(
             JSON.stringify({
               type: ServerEvent.Ack,
@@ -94,18 +142,34 @@ export const eventHandler = async (
         }
 
         if (pendingOrActiveSession.status === DeviceSessionStatus.Active) {
-          console.log("- Device session is Active");
+          logger.info(
+            {
+              deviceNumber: device.deviceNumber,
+              type: device.type,
+            },
+            "Device session is Active",
+          );
 
           const startAt = pendingOrActiveSession.startAt;
           const endAt = pendingOrActiveSession.endAt;
 
           if (startAt && endAt) {
-            console.log("- Checking remaining time");
+            logger.info(
+              {
+                deviceNumber: device.deviceNumber,
+                type: device.type,
+              },
+              "Checking remaining time",
+            );
             const remainingMs = Math.max(0, endAt.getTime() - Date.now());
 
             if (remainingMs <= 0) {
-              console.log(
-                "- Already expired. Updating device session to Expired",
+              logger.info(
+                {
+                  deviceNumber: device.deviceNumber,
+                  type: device.type,
+                },
+                "Already expired. Updating device session to Expired",
               );
 
               await db
@@ -115,7 +179,13 @@ export const eventHandler = async (
                 })
                 .where(eq(deviceSessions.id, pendingOrActiveSession.id));
 
-              console.log("- Sending null session.");
+              logger.info(
+                {
+                  deviceNumber: device.deviceNumber,
+                  type: device.type,
+                },
+                "Sending null session.",
+              );
 
               ws.send(
                 JSON.stringify({
@@ -127,7 +197,17 @@ export const eventHandler = async (
                 }),
               );
             } else {
-              console.log("- Sending session", { startAt, endAt });
+              logger.info(
+                {
+                  deviceNumber: device.deviceNumber,
+                  type: device.type,
+                  session: {
+                    startAt,
+                    endAt,
+                  },
+                },
+                "Sending session",
+              );
 
               ws.send(
                 JSON.stringify({
@@ -155,6 +235,6 @@ export const eventHandler = async (
       }
       break;
     default:
-      console.warn("Unknown event", event.type);
+      logger.warn(event, "Unknown event");
   }
 };
