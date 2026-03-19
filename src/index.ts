@@ -6,6 +6,7 @@ import { devices } from "@/db/schemas";
 import { auth } from "@/lib/auth";
 import { clients } from "@/lib/clients";
 import { eventHandler } from "@/lib/event-handler";
+import { logger } from "@/lib/pino.lib";
 import { authMiddleware } from "@/middlewares/auth.middleware";
 import adminAccountRoute from "@/routes/admin/account.route";
 import adminDevicesRoute from "@/routes/admin/devices.route";
@@ -67,7 +68,7 @@ const server = serve(
     port: 5000,
   },
   (info) => {
-    console.log(`Server is running on http://localhost:${info.port}`);
+    logger.info(`Server is running on http://localhost:${info.port}`);
   },
 );
 
