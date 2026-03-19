@@ -254,12 +254,16 @@ route.post("/:id/add-time", async (c) => {
 route.post("/:id/stop", async (c) => {
   const id = c.req.param("id");
 
+  logger.info({ id }, "Stop session API");
+
   const serverClient = clients.get(id);
 
   if (!serverClient) {
-    return c.json({ message: "PC not connected" }, 404);
+    logger.info({ id }, "Device not found");
+    return c.json({ message: "Device not connected" }, 404);
   }
 
+  logger.info({ id }, "Updating session to Terminated");
   await db
     .update(deviceSessions)
     .set({
