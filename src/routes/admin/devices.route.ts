@@ -15,23 +15,6 @@ import wakeonlan from "wakeonlan";
 
 const route = new Hono();
 
-route.get("/", async (c) => {
-  const devices = await db.query.devices.findMany({
-    with: {
-      deviceSessions: {
-        where: inArray(deviceSessions.status, [
-          DeviceSessionStatus.Pending,
-          DeviceSessionStatus.Active,
-        ]),
-      },
-    },
-  });
-
-  return c.json({
-    items: devices,
-  });
-});
-
 route.post("/", async (c) => {
   const parsedData = InsertDeviceSchema.parse(await c.req.json());
 
