@@ -1,3 +1,4 @@
+import env from "@/common/env.type";
 import { RegisterDeviceSchema } from "@/common/schemas/device.schema";
 import { DeviceSessionStatus } from "@/common/types/device-session.type";
 import { DeviceStatus } from "@/common/types/device.type";
@@ -47,8 +48,13 @@ route.post("/devices/register", async (c) => {
   });
 });
 
-// TODO: make it secure
 route.post("/devices/:id/insert-coin", async (c) => {
+  // TODO: improve
+  const apiKey = c.req.raw.headers.get("x-api-key");
+  if (apiKey !== env.COIN_SLOT_SECRET) {
+    return c.json({ message: "Unauthorized" }, 401);
+  }
+
   const id = c.req.param("id");
   const { coins } = await c.req.json();
 
