@@ -256,13 +256,6 @@ route.post("/:id/stop", async (c) => {
 
   logger.info({ id }, "Stop session API");
 
-  const serverClient = clients.get(id);
-
-  if (!serverClient) {
-    logger.info({ id }, "Device not found");
-    return c.json({ message: "Device not connected" }, 404);
-  }
-
   logger.info({ id }, "Updating session to Terminated");
   await db
     .update(deviceSessions)
@@ -276,11 +269,15 @@ route.post("/:id/stop", async (c) => {
       ),
     );
 
-  serverClient.ws.send(
-    JSON.stringify({
-      type: SessionEvent.Stop,
-    }),
-  );
+  const serverClient = clients.get(id);
+
+  if (serverClient) {
+    serverClient.ws.send(
+      JSON.stringify({
+        type: SessionEvent.Stop,
+      }),
+    );
+  }
 
   return c.json({ message: "Session stopped successfully." });
 });
