@@ -14,7 +14,7 @@ import wakeonlan from "wakeonlan";
 
 const route = new Hono();
 
-route.get("/", async (c) => {
+route.get("/devices", async (c) => {
   const devices = await db.query.devices.findMany({
     with: {
       deviceSessions: {
