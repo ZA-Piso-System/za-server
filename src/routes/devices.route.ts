@@ -74,10 +74,14 @@ route.post("/devices/:id/insert-coin", async (c) => {
 
   const id = c.req.param("id");
   const { coins } = await c.req.json();
-
   const seconds = coins * 4 * 60;
 
   logger.info({ id }, "Insert Coin API");
+
+  if (seconds <= 0) {
+    logger.info({ id }, "Invalid time");
+    return c.json({ message: "Invalid time" }, 400);
+  }
 
   const device = await db.query.devices.findFirst({
     where: eq(devices.id, id),

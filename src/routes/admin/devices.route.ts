@@ -54,6 +54,11 @@ route.post("/:id/add-time", async (c) => {
 
   logger.info({ id }, "Add Time API");
 
+  if (seconds <= 0) {
+    logger.info({ id }, "Invalid time");
+    return c.json({ message: "Invalid time" }, 400);
+  }
+
   const device = await db.query.devices.findFirst({
     where: eq(devices.id, id),
   });
