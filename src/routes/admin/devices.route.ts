@@ -74,7 +74,7 @@ route.post("/:id/add-time", async (c) => {
     return c.json({ message: "Device is not registered." }, 404);
   }
 
-  const pendingOrActiveSession = await db.query.deviceSessions.findFirst({
+  let pendingOrActiveSession = await db.query.deviceSessions.findFirst({
     where: and(
       eq(deviceSessions.deviceId, device.id),
       inArray(deviceSessions.status, [
@@ -83,6 +83,52 @@ route.post("/:id/add-time", async (c) => {
       ]),
     ),
   });
+
+  if (
+    pendingOrActiveSession &&
+    pendingOrActiveSession.status === DeviceSessionStatus.Active
+  ) {
+    logger.info(
+      {
+        deviceNumber: device.deviceNumber,
+        type: device.type,
+      },
+      "Device session is Active",
+    );
+
+    const startAt = pendingOrActiveSession.startAt;
+    const endAt = pendingOrActiveSession.endAt;
+
+    if (startAt && endAt) {
+      logger.info(
+        {
+          deviceNumber: device.deviceNumber,
+          type: device.type,
+        },
+        "Checking remaining time",
+      );
+      const remainingMs = Math.max(0, endAt.getTime() - Date.now());
+
+      if (remainingMs <= 0) {
+        logger.info(
+          {
+            deviceNumber: device.deviceNumber,
+            type: device.type,
+          },
+          "Already expired. Updating device session to Expired",
+        );
+
+        await db
+          .update(deviceSessions)
+          .set({
+            status: DeviceSessionStatus.Expired,
+          })
+          .where(eq(deviceSessions.id, pendingOrActiveSession.id));
+
+        pendingOrActiveSession = undefined;
+      }
+    }
+  }
 
   if (device.status === DeviceStatus.Offline) {
     logger.info(
