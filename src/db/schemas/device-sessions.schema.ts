@@ -1,4 +1,5 @@
 import { DeviceSessionStatus } from "@/common/types/device-session.type";
+import { coinLogs } from "@/db/schemas/coin-logs.schema";
 import { devices } from "@/db/schemas/devices.schema";
 import { relations } from "drizzle-orm";
 import { integer, pgEnum, pgTable, timestamp, uuid } from "drizzle-orm/pg-core";
@@ -26,9 +27,13 @@ export const deviceSessions = pgTable("device_sessions", {
     .notNull(),
 });
 
-export const deviceSessionsRelations = relations(deviceSessions, ({ one }) => ({
-  device: one(devices, {
-    fields: [deviceSessions.deviceId],
-    references: [devices.id],
+export const deviceSessionsRelations = relations(
+  deviceSessions,
+  ({ one, many }) => ({
+    device: one(devices, {
+      fields: [deviceSessions.deviceId],
+      references: [devices.id],
+    }),
+    coinLogs: many(coinLogs),
   }),
-}));
+);

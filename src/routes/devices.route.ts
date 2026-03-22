@@ -1,11 +1,12 @@
 import env from "@/common/env.type";
+import { InsertCoinLogSchema } from "@/common/schemas/coin-log.schema";
 import { RegisterDeviceSchema } from "@/common/schemas/device.schema";
 import { DeviceSessionStatus } from "@/common/types/device-session.type";
 import { DeviceStatus } from "@/common/types/device.type";
 import { SessionEvent } from "@/common/types/session-event.type";
 import { Session } from "@/common/types/session.type";
 import db from "@/db";
-import { devices, deviceSessions } from "@/db/schemas";
+import { coinLogs, devices, deviceSessions } from "@/db/schemas";
 import { clients } from "@/lib/clients";
 import { logger } from "@/lib/pino.lib";
 import { and, eq, inArray, isNull } from "drizzle-orm";
@@ -65,16 +66,17 @@ route.post("/devices/register", async (c) => {
   });
 });
 
+// TODO: improve
 route.post("/devices/:id/insert-coin", async (c) => {
-  // TODO: improve
   const apiKey = c.req.raw.headers.get("x-api-key");
   if (apiKey !== env.COIN_SLOT_SECRET) {
     return c.json({ message: "Unauthorized" }, 401);
   }
 
   const id = c.req.param("id");
-  const { coins } = await c.req.json();
-  const seconds = coins * 4 * 60;
+
+  const parsedData = InsertCoinLogSchema.parse(await c.req.json());
+  const seconds = parsedData.amount * 4 * 60;
 
   logger.info({ id }, "Insert Coin API");
 
@@ -179,10 +181,19 @@ route.post("/devices/:id/insert-coin", async (c) => {
         "No pending/active session. Creating new Pending session.",
       );
 
-      await db.insert(deviceSessions).values({
+      const [deviceSession] = await db
+        .insert(deviceSessions)
+        .values({
+          deviceId: device.id,
+          status: DeviceSessionStatus.Pending,
+          allocatedSeconds: seconds,
+        })
+        .returning();
+
+      await db.insert(coinLogs).values({
         deviceId: device.id,
-        status: DeviceSessionStatus.Pending,
-        allocatedSeconds: seconds,
+        deviceSessionId: deviceSession.id,
+        amount: parsedData.amount,
       });
     } else {
       logger.info(
@@ -209,6 +220,12 @@ route.post("/devices/:id/insert-coin", async (c) => {
           endAt,
         })
         .where(eq(deviceSessions.id, pendingOrActiveSession.id));
+
+      await db.insert(coinLogs).values({
+        deviceId: device.id,
+        deviceSessionId: pendingOrActiveSession.id,
+        amount: parsedData.amount,
+      });
     }
 
     await db
@@ -226,6 +243,74 @@ route.post("/devices/:id/insert-coin", async (c) => {
       "Turning on device",
     );
     wakeonlan(device.macAddress);
+  }
+
+  if (device.status === DeviceStatus.Starting) {
+    logger.info(
+      {
+        deviceNumber: device.deviceNumber,
+        type: device.type,
+      },
+      "Device is starting",
+    );
+
+    // No pending/active session
+    if (!pendingOrActiveSession) {
+      logger.info(
+        {
+          deviceNumber: device.deviceNumber,
+          type: device.type,
+          seconds,
+        },
+        "No pending/active session. Creating new Pending session.",
+      );
+
+      const [deviceSession] = await db
+        .insert(deviceSessions)
+        .values({
+          deviceId: device.id,
+          status: DeviceSessionStatus.Pending,
+          allocatedSeconds: seconds,
+        })
+        .returning();
+
+      await db.insert(coinLogs).values({
+        deviceId: device.id,
+        deviceSessionId: deviceSession.id,
+        amount: parsedData.amount,
+      });
+    } else {
+      logger.info(
+        {
+          deviceNumber: device.deviceNumber,
+          type: device.type,
+          seconds,
+        },
+        "Found pending/active session. Updating it.",
+      );
+
+      // Has pending/active then update allocatedSeconds & endAt
+      const allocatedSeconds =
+        pendingOrActiveSession.allocatedSeconds + seconds;
+
+      const endAt = pendingOrActiveSession.endAt
+        ? new Date(pendingOrActiveSession.endAt.getTime() + seconds * 1_000)
+        : null;
+
+      await db
+        .update(deviceSessions)
+        .set({
+          allocatedSeconds,
+          endAt,
+        })
+        .where(eq(deviceSessions.id, pendingOrActiveSession.id));
+
+      await db.insert(coinLogs).values({
+        deviceId: device.id,
+        deviceSessionId: pendingOrActiveSession.id,
+        amount: parsedData.amount,
+      });
+    }
   }
 
   if (device.status === DeviceStatus.Online) {
@@ -254,12 +339,21 @@ route.post("/devices/:id/insert-coin", async (c) => {
       startAt = new Date();
       endAt = new Date(startAt.getTime() + seconds * 1_000);
 
-      await db.insert(deviceSessions).values({
+      const [deviceSession] = await db
+        .insert(deviceSessions)
+        .values({
+          deviceId: device.id,
+          status: DeviceSessionStatus.Active,
+          allocatedSeconds: seconds,
+          startAt,
+          endAt,
+        })
+        .returning();
+
+      await db.insert(coinLogs).values({
         deviceId: device.id,
-        status: DeviceSessionStatus.Active,
-        allocatedSeconds: seconds,
-        startAt,
-        endAt,
+        deviceSessionId: deviceSession.id,
+        amount: parsedData.amount,
       });
     } else {
       logger.info(
@@ -287,6 +381,12 @@ route.post("/devices/:id/insert-coin", async (c) => {
           endAt,
         })
         .where(eq(deviceSessions.id, pendingOrActiveSession.id));
+
+      await db.insert(coinLogs).values({
+        deviceId: device.id,
+        deviceSessionId: pendingOrActiveSession.id,
+        amount: parsedData.amount,
+      });
     }
 
     const serverClient = clients.get(id);

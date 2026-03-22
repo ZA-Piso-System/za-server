@@ -15,6 +15,13 @@
       "when": 1774183469328,
       "tag": "0001_majestic_thaddeus_ross",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1774185306358,
+      "tag": "0002_careful_dreaming_celestial",
+      "breakpoints": true
     }
   ]
 }
