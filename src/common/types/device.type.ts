@@ -6,6 +6,7 @@ export const DeviceType = {
 
 export const DeviceStatus = {
   Pending: "pending",
+  Starting: "starting",
   Offline: "offline",
   Online: "online",
 } as const;

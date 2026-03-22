@@ -187,6 +187,13 @@ route.post("/:id/add-time", async (c) => {
         .where(eq(deviceSessions.id, pendingOrActiveSession.id));
     }
 
+    await db
+      .update(devices)
+      .set({
+        status: DeviceStatus.Starting,
+      })
+      .where(eq(devices.id, device.id));
+
     logger.info(
       {
         deviceNumber: device.deviceNumber,

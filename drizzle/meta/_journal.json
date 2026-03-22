@@ -8,6 +8,13 @@
       "when": 1773720013080,
       "tag": "0000_gorgeous_calypso",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1774183469328,
+      "tag": "0001_majestic_thaddeus_ross",
+      "breakpoints": true
     }
   ]
 }
