@@ -9,6 +9,7 @@ import { eventHandler } from "@/lib/event-handler";
 import { logger } from "@/lib/pino.lib";
 import { authMiddleware } from "@/middlewares/auth.middleware";
 import adminAccountRoute from "@/routes/admin/account.route";
+import adminDashboardRoute from "@/routes/admin/dashboard.route";
 import adminDevicesRoute from "@/routes/admin/devices.route";
 import devicesRoute from "@/routes/devices.route";
 import { serve } from "@hono/node-server";
@@ -39,6 +40,7 @@ app.route("/api/v1", devicesRoute);
 // admin routes
 app.use("/api/v1/admin/*", authMiddleware);
 app.route("/api/v1/admin/account", adminAccountRoute);
+app.route("/api/v1/admin/dashboard", adminDashboardRoute);
 app.route("/api/v1/admin/devices", adminDevicesRoute);
 
 // websocket
