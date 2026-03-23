@@ -1,8 +1,9 @@
 import env from "@/common/env.type";
+import { DeviceSessionStatus } from "@/common/types/device-session.type";
 import { DeviceStatus } from "@/common/types/device.type";
 import { CustomWebscoket } from "@/common/types/websocket.type";
 import db from "@/db";
-import { devices } from "@/db/schemas";
+import { devices, deviceSessions } from "@/db/schemas";
 import { auth } from "@/lib/auth";
 import { clients } from "@/lib/clients";
 import { eventHandler } from "@/lib/event-handler";
@@ -14,7 +15,7 @@ import adminDevicesRoute from "@/routes/admin/devices.route";
 import devicesRoute from "@/routes/devices.route";
 import { serve } from "@hono/node-server";
 import { createNodeWebSocket } from "@hono/node-ws";
-import { eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 
@@ -55,10 +56,49 @@ app.get(
         if (!ws.deviceId) return;
         const client = clients.get(ws.deviceId);
         if (!client) return;
+
+        logger.info({ id: client.id }, "Device offline");
+
         await db
           .update(devices)
           .set({ status: DeviceStatus.Offline })
           .where(eq(devices.id, client.id));
+
+        const pendingOrActiveSession = await db.query.deviceSessions.findFirst({
+          where: and(
+            eq(deviceSessions.deviceId, client.id),
+            inArray(deviceSessions.status, [
+              DeviceSessionStatus.Pending,
+              DeviceSessionStatus.Active,
+            ]),
+          ),
+        });
+
+        if (
+          pendingOrActiveSession &&
+          pendingOrActiveSession.status === DeviceSessionStatus.Active
+        ) {
+          const startAt = pendingOrActiveSession.startAt;
+          const endAt = pendingOrActiveSession.endAt;
+
+          if (startAt && endAt) {
+            const remainingMs = Math.max(0, endAt.getTime() - Date.now());
+
+            if (remainingMs <= 0) {
+              logger.info(
+                { id: client.id },
+                "Already expired. Updating device session to Expired",
+              );
+
+              await db
+                .update(deviceSessions)
+                .set({
+                  status: DeviceSessionStatus.Expired,
+                })
+                .where(eq(deviceSessions.id, pendingOrActiveSession.id));
+            }
+          }
+        }
       },
     };
   }),
