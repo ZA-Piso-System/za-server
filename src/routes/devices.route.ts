@@ -78,7 +78,7 @@ route.post("/devices/:id/insert-coin", async (c) => {
   const parsedData = InsertCoinLogSchema.parse(await c.req.json());
   const seconds = parsedData.amount * 4 * 60;
 
-  logger.info({ id }, "Insert Coin API");
+  logger.info({ id, amount: parsedData.amount }, "Insert Coin API");
 
   if (seconds <= 0) {
     logger.info({ id }, "Invalid time");
