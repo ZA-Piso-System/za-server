@@ -1,7 +1,15 @@
 import { CoinLogSearchParamsSchema } from "@/common/schemas/coin-log.schema";
+import { SalesOverviewParamsSchema } from "@/common/schemas/dashboard.schema";
 import db from "@/db";
 import { coinLogs } from "@/db/schemas";
-import { endOfDay, startOfDay, startOfWeek } from "date-fns";
+import {
+  endOfDay,
+  startOfDay,
+  startOfMonth,
+  startOfWeek,
+  startOfYear,
+  subMonths,
+} from "date-fns";
 import { and, desc, gte, lte, sql, sum } from "drizzle-orm";
 import { Hono } from "hono";
 
@@ -26,20 +34,68 @@ route.get("/", async (c) => {
 });
 
 route.get("/sales-overview", async (c) => {
+  const { period } = SalesOverviewParamsSchema.parse(c.req.query());
+
   const today = new Date();
-  const weekStart = startOfWeek(today);
+  let rows: { label: string; value: number }[] = [];
 
-  const result = await db
-    .select({
-      label: sql<string>`TO_CHAR(created_at, 'Dy')`,
-      value: sum(coinLogs.amount).mapWith(Number),
-    })
-    .from(coinLogs)
-    .where(and(gte(coinLogs.createdAt, weekStart)))
-    .groupBy(sql`TO_CHAR(created_at, 'Dy')`)
-    .orderBy(sql`MIN(created_at)`);
+  if (period === "this_week") {
+    const weekStart = startOfWeek(today);
 
-  return c.json(result);
+    rows = await db
+      .select({
+        label: sql<string>`TO_CHAR(created_at, 'Dy')`,
+        value: sum(coinLogs.amount).mapWith(Number),
+      })
+      .from(coinLogs)
+      .where(and(gte(coinLogs.createdAt, weekStart)))
+      .groupBy(sql`TO_CHAR(created_at, 'Dy')`)
+      .orderBy(sql`MIN(created_at)`);
+  }
+
+  if (period === "this_month") {
+    const monthStart = startOfMonth(today);
+
+    rows = await db
+      .select({
+        label: sql<string>`TO_CHAR(created_at, 'DD')`,
+        value: sum(coinLogs.amount).mapWith(Number),
+      })
+      .from(coinLogs)
+      .where(and(gte(coinLogs.createdAt, monthStart)))
+      .groupBy(sql`TO_CHAR(created_at, 'DD')`)
+      .orderBy(sql`MIN(created_at)`);
+  }
+
+  if (period === "last_3_months") {
+    const threeMonthsAgo = startOfMonth(subMonths(today, 3));
+
+    rows = await db
+      .select({
+        label: sql<string>`'Week ' || EXTRACT(WEEK FROM created_at)`,
+        value: sum(coinLogs.amount).mapWith(Number),
+      })
+      .from(coinLogs)
+      .where(and(gte(coinLogs.createdAt, threeMonthsAgo)))
+      .groupBy(sql`EXTRACT(WEEK FROM created_at)`)
+      .orderBy(sql`MIN(created_at)`);
+  }
+
+  if (period === "this_year") {
+    const yearStart = startOfYear(today);
+
+    rows = await db
+      .select({
+        label: sql<string>`TO_CHAR(created_at, 'Mon')`,
+        value: sum(coinLogs.amount).mapWith(Number),
+      })
+      .from(coinLogs)
+      .where(and(gte(coinLogs.createdAt, yearStart)))
+      .groupBy(sql`TO_CHAR(created_at, 'Mon')`)
+      .orderBy(sql`MIN(created_at)`);
+  }
+
+  return c.json(rows);
 });
 
 // TODO: refactor API route
