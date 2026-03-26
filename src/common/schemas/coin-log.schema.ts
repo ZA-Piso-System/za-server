@@ -4,8 +4,8 @@ import { createInsertSchema } from "drizzle-zod";
 import z from "zod/v4";
 
 export const CoinLogSearchParamsSchema = PaginationSchema.extend({
-  from: z.iso.date().optional(),
-  to: z.iso.date().optional(),
+  from: z.iso.datetime().optional(),
+  to: z.iso.datetime().optional(),
 });
 
 export const InsertCoinLogSchema = createInsertSchema(coinLogs, {

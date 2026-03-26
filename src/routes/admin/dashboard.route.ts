@@ -34,8 +34,8 @@ route.get("/coin-logs", async (c) => {
     where: and(
       from && to
         ? and(
-            gte(coinLogs.createdAt, startOfDay(new Date(from))),
-            lte(coinLogs.createdAt, endOfDay(new Date(to))),
+            gte(coinLogs.createdAt, new Date(from)),
+            lte(coinLogs.createdAt, new Date(to)),
           )
         : undefined,
     ),
@@ -52,8 +52,8 @@ route.get("/coin-logs", async (c) => {
     and(
       from && to
         ? and(
-            gte(coinLogs.createdAt, startOfDay(new Date(from))),
-            lte(coinLogs.createdAt, endOfDay(new Date(to))),
+            gte(coinLogs.createdAt, new Date(from)),
+            lte(coinLogs.createdAt, new Date(to)),
           )
         : undefined,
     ),
