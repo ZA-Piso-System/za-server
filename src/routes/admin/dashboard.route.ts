@@ -1,8 +1,8 @@
 import { CoinLogSearchParamsSchema } from "@/common/schemas/coin-log.schema";
 import db from "@/db";
 import { coinLogs } from "@/db/schemas";
-import { endOfDay, startOfDay } from "date-fns";
-import { and, desc, gte, lte, sum } from "drizzle-orm";
+import { endOfDay, startOfDay, startOfWeek } from "date-fns";
+import { and, desc, gte, lte, sql, sum } from "drizzle-orm";
 import { Hono } from "hono";
 
 const route = new Hono();
@@ -25,6 +25,24 @@ route.get("/", async (c) => {
   });
 });
 
+route.get("/sales-overview", async (c) => {
+  const today = new Date();
+  const weekStart = startOfWeek(today);
+
+  const result = await db
+    .select({
+      label: sql<string>`TO_CHAR(created_at, 'Dy')`,
+      value: sum(coinLogs.amount).mapWith(Number),
+    })
+    .from(coinLogs)
+    .where(and(gte(coinLogs.createdAt, weekStart)))
+    .groupBy(sql`TO_CHAR(created_at, 'Dy')`)
+    .orderBy(sql`MIN(created_at)`);
+
+  return c.json(result);
+});
+
+// TODO: refactor API route
 route.get("/coin-logs", async (c) => {
   const { from, to, page, page_size } = CoinLogSearchParamsSchema.parse(
     c.req.query(),
