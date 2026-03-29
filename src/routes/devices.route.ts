@@ -9,14 +9,15 @@ import db from "@/db";
 import { coinLogs, devices, deviceSessions } from "@/db/schemas";
 import { clients } from "@/lib/clients";
 import { logger } from "@/lib/pino.lib";
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull, ne } from "drizzle-orm";
 import { Hono } from "hono";
 import wakeonlan from "wakeonlan";
 
 const route = new Hono();
 
 route.get("/devices", async (c) => {
-  const devices = await db.query.devices.findMany({
+  const rows = await db.query.devices.findMany({
+    where: ne(devices.status, DeviceStatus.Pending),
     with: {
       deviceSessions: {
         where: inArray(deviceSessions.status, [
@@ -28,7 +29,7 @@ route.get("/devices", async (c) => {
   });
 
   return c.json({
-    items: devices,
+    items: rows,
   });
 });
 
