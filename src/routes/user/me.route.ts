@@ -362,6 +362,8 @@ route.post("/stop-time", async (c) => {
 
   const id = parsedData.id;
 
+  logger.info({ id }, "Stop Time API");
+
   const device = await db.query.devices.findFirst({
     where: eq(devices.id, id),
   });
