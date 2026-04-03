@@ -8,11 +8,13 @@ import { auth } from "@/lib/auth";
 import { clients } from "@/lib/clients";
 import { eventHandler } from "@/lib/event-handler";
 import { logger } from "@/lib/pino.lib";
+import { adminMiddleware } from "@/middlewares/admin.middleware";
 import { authMiddleware } from "@/middlewares/auth.middleware";
 import adminAccountRoute from "@/routes/admin/account.route";
 import adminDashboardRoute from "@/routes/admin/dashboard.route";
 import adminDevicesRoute from "@/routes/admin/devices.route";
 import devicesRoute from "@/routes/devices.route";
+import meRoute from "@/routes/user/me.route";
 import { serve } from "@hono/node-server";
 import { createNodeWebSocket } from "@hono/node-ws";
 import { and, eq, inArray } from "drizzle-orm";
@@ -38,8 +40,12 @@ app.on(["POST", "GET"], "/api/v1/auth/*", (c) => auth.handler(c.req.raw));
 // public routes
 app.route("/api/v1", devicesRoute);
 
+// user routes
+app.use("/api/v1/user/*", authMiddleware);
+app.route("/api/v1/user/me", meRoute);
+
 // admin routes
-app.use("/api/v1/admin/*", authMiddleware);
+app.use("/api/v1/admin/*", adminMiddleware);
 app.route("/api/v1/admin/account", adminAccountRoute);
 app.route("/api/v1/admin/dashboard", adminDashboardRoute);
 app.route("/api/v1/admin/devices", adminDevicesRoute);

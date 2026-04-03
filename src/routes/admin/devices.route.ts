@@ -48,6 +48,7 @@ route.get("/:id", async (c) => {
   return c.json(device);
 });
 
+// TODO: refactor
 route.post("/:id/add-time", async (c) => {
   const id = c.req.param("id");
   const { seconds } = await c.req.json();

@@ -1,85 +1,60 @@
-import env from "@/common/env.type";
-import { InsertCoinLogSchema } from "@/common/schemas/coin-log.schema";
-import { RegisterDeviceSchema } from "@/common/schemas/device.schema";
+import { UseTimeSchema } from "@/common/schemas/me.schema";
 import { DeviceSessionStatus } from "@/common/types/device-session.type";
 import { DeviceStatus } from "@/common/types/device.type";
 import { SessionEvent } from "@/common/types/session-event.type";
 import { Session } from "@/common/types/session.type";
 import db from "@/db";
-import { coinLogs, devices, deviceSessions } from "@/db/schemas";
+import { devices, deviceSessions, users } from "@/db/schemas";
+import { auth } from "@/lib/auth";
 import { clients } from "@/lib/clients";
 import { logger } from "@/lib/pino.lib";
-import { and, eq, inArray, isNull, ne } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import wakeonlan from "wakeonlan";
 
-const route = new Hono();
+type Env = {
+  Variables: {
+    user: typeof auth.$Infer.Session.user;
+  };
+};
 
-route.get("/devices", async (c) => {
-  const rows = await db.query.devices.findMany({
-    where: ne(devices.status, DeviceStatus.Pending),
-    with: {
-      deviceSessions: {
-        where: inArray(deviceSessions.status, [
-          DeviceSessionStatus.Pending,
-          DeviceSessionStatus.Active,
-        ]),
-      },
+const route = new Hono<Env>();
+
+route.get("/balance", async (c) => {
+  const user = c.get("user");
+
+  const result = await db.query.users.findFirst({
+    columns: {
+      balanceSeconds: true,
+      points: true,
     },
+    where: eq(users.id, user.id),
   });
 
-  return c.json({
-    items: rows,
-  });
-});
-
-route.post("/devices/register", async (c) => {
-  const parsedData = RegisterDeviceSchema.parse(await c.req.json());
-
-  const existingDevice = await db.query.devices.findFirst({
-    where: and(
-      isNull(devices.macAddress),
-      eq(devices.registrationToken, parsedData.registrationToken),
-    ),
-  });
-
-  if (!existingDevice) {
-    return c.json({ message: "Device not found." }, 404);
-  }
-
-  const [updatedDevice] = await db
-    .update(devices)
-    .set({
-      macAddress: parsedData.macAddress,
-      status: DeviceStatus.Offline,
-    })
-    .where(eq(devices.id, existingDevice.id))
-    .returning();
-
-  return c.json({
-    message: "Device registered successfully.",
-    data: {
-      id: updatedDevice.id,
-      deviceNumber: updatedDevice.deviceNumber,
-      macAddress: updatedDevice.macAddress,
-      type: updatedDevice.type,
-    },
-  });
+  return c.json(result);
 });
 
 // TODO: refactor
-route.post("/devices/:id/insert-coin", async (c) => {
-  const apiKey = c.req.raw.headers.get("x-api-key");
-  if (apiKey !== env.COIN_SLOT_SECRET) {
-    return c.json({ message: "Unauthorized" }, 401);
-  }
+route.post("/use-time", async (c) => {
+  const user = c.get("user");
+  const parsedData = UseTimeSchema.parse(await c.req.json());
 
-  const id = c.req.param("id");
+  const result = await db.query.users.findFirst({
+    columns: {
+      balanceSeconds: true,
+    },
+    where: eq(users.id, user.id),
+  });
 
-  const parsedData = InsertCoinLogSchema.parse(await c.req.json());
-  const seconds = parsedData.amount * 4 * 60;
+  const id = parsedData.id;
+  const seconds = result?.balanceSeconds ?? 0;
 
-  logger.info({ id, amount: parsedData.amount }, "Insert Coin API");
+  await db
+    .update(users)
+    .set({ balanceSeconds: 0 })
+    .where(eq(users.id, user.id));
+
+  logger.info({ id }, "Use Time API");
 
   if (seconds <= 0) {
     logger.info({ id }, "Invalid time");
@@ -182,7 +157,7 @@ route.post("/devices/:id/insert-coin", async (c) => {
         "No pending/active session. Creating new Pending session.",
       );
 
-      const [deviceSession] = await db
+      await db
         .insert(deviceSessions)
         .values({
           deviceId: device.id,
@@ -190,12 +165,6 @@ route.post("/devices/:id/insert-coin", async (c) => {
           allocatedSeconds: seconds,
         })
         .returning();
-
-      await db.insert(coinLogs).values({
-        deviceId: device.id,
-        deviceSessionId: deviceSession.id,
-        amount: parsedData.amount,
-      });
     } else {
       logger.info(
         {
@@ -221,12 +190,6 @@ route.post("/devices/:id/insert-coin", async (c) => {
           endAt,
         })
         .where(eq(deviceSessions.id, pendingOrActiveSession.id));
-
-      await db.insert(coinLogs).values({
-        deviceId: device.id,
-        deviceSessionId: pendingOrActiveSession.id,
-        amount: parsedData.amount,
-      });
     }
 
     await db
@@ -266,7 +229,7 @@ route.post("/devices/:id/insert-coin", async (c) => {
         "No pending/active session. Creating new Pending session.",
       );
 
-      const [deviceSession] = await db
+      await db
         .insert(deviceSessions)
         .values({
           deviceId: device.id,
@@ -274,12 +237,6 @@ route.post("/devices/:id/insert-coin", async (c) => {
           allocatedSeconds: seconds,
         })
         .returning();
-
-      await db.insert(coinLogs).values({
-        deviceId: device.id,
-        deviceSessionId: deviceSession.id,
-        amount: parsedData.amount,
-      });
     } else {
       logger.info(
         {
@@ -305,12 +262,6 @@ route.post("/devices/:id/insert-coin", async (c) => {
           endAt,
         })
         .where(eq(deviceSessions.id, pendingOrActiveSession.id));
-
-      await db.insert(coinLogs).values({
-        deviceId: device.id,
-        deviceSessionId: pendingOrActiveSession.id,
-        amount: parsedData.amount,
-      });
     }
   }
 
@@ -340,7 +291,7 @@ route.post("/devices/:id/insert-coin", async (c) => {
       startAt = new Date();
       endAt = new Date(startAt.getTime() + seconds * 1_000);
 
-      const [deviceSession] = await db
+      await db
         .insert(deviceSessions)
         .values({
           deviceId: device.id,
@@ -350,12 +301,6 @@ route.post("/devices/:id/insert-coin", async (c) => {
           endAt,
         })
         .returning();
-
-      await db.insert(coinLogs).values({
-        deviceId: device.id,
-        deviceSessionId: deviceSession.id,
-        amount: parsedData.amount,
-      });
     } else {
       logger.info(
         {
@@ -382,12 +327,6 @@ route.post("/devices/:id/insert-coin", async (c) => {
           endAt,
         })
         .where(eq(deviceSessions.id, pendingOrActiveSession.id));
-
-      await db.insert(coinLogs).values({
-        deviceId: device.id,
-        deviceSessionId: pendingOrActiveSession.id,
-        amount: parsedData.amount,
-      });
     }
 
     const serverClient = clients.get(id);
@@ -415,6 +354,98 @@ route.post("/devices/:id/insert-coin", async (c) => {
   }
 
   return c.json({ message: "Time added successfully." });
+});
+
+route.post("/stop-time", async (c) => {
+  const user = c.get("user");
+  const parsedData = UseTimeSchema.parse(await c.req.json());
+
+  const id = parsedData.id;
+
+  const device = await db.query.devices.findFirst({
+    where: eq(devices.id, id),
+  });
+
+  if (!device) {
+    logger.info({ id }, "Device not found");
+    return c.json({ message: "Device not found." }, 404);
+  }
+
+  if (!device.macAddress || device.status === DeviceStatus.Pending) {
+    logger.info(
+      {
+        deviceNumber: device.deviceNumber,
+        type: device.type,
+      },
+      "Device is not registered",
+    );
+    return c.json({ message: "Device is not registered." }, 404);
+  }
+
+  let pendingOrActiveSession = await db.query.deviceSessions.findFirst({
+    where: and(
+      eq(deviceSessions.deviceId, device.id),
+      inArray(deviceSessions.status, [
+        DeviceSessionStatus.Pending,
+        DeviceSessionStatus.Active,
+      ]),
+    ),
+  });
+
+  if (
+    pendingOrActiveSession &&
+    pendingOrActiveSession.status === DeviceSessionStatus.Active
+  ) {
+    logger.info(
+      {
+        deviceNumber: device.deviceNumber,
+        type: device.type,
+      },
+      "Device session is Active",
+    );
+
+    const startAt = pendingOrActiveSession.startAt;
+    const endAt = pendingOrActiveSession.endAt;
+
+    if (startAt && endAt) {
+      logger.info(
+        {
+          userId: user.id,
+          deviceNumber: device.deviceNumber,
+          type: device.type,
+        },
+        "Updating balance seconds",
+      );
+      const remainingMs = Math.max(0, endAt.getTime() - Date.now());
+      const remainingSeconds = Math.ceil(remainingMs / 1000);
+
+      await db
+        .update(deviceSessions)
+        .set({
+          status: DeviceSessionStatus.Terminated,
+        })
+        .where(eq(deviceSessions.id, pendingOrActiveSession.id));
+
+      await db
+        .update(users)
+        .set({
+          balanceSeconds: sql`${users.balanceSeconds} + ${remainingSeconds}`,
+        })
+        .where(eq(users.id, user.id));
+    }
+  }
+
+  const serverClient = clients.get(id);
+
+  if (serverClient) {
+    serverClient.ws.send(
+      JSON.stringify({
+        type: SessionEvent.Stop,
+      }),
+    );
+  }
+
+  return c.json({ message: "Time stopped successfully." });
 });
 
 export default route;
