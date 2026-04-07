@@ -4,7 +4,7 @@ import { getUserRole } from "@/repositories/user.repository";
 import { electron } from "@better-auth/electron";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { bearer, customSession } from "better-auth/plugins";
+import { bearer, customSession, username } from "better-auth/plugins";
 
 export const auth = betterAuth({
   basePath: "/api/v1/auth",
@@ -43,7 +43,6 @@ export const auth = betterAuth({
   trustedOrigins: env.ALLOWED_ORIGINS.split(","),
   plugins: [
     bearer(),
-    electron(),
     customSession(async ({ user, session }) => {
       const role = await getUserRole(user.id);
       return {
@@ -54,5 +53,7 @@ export const auth = betterAuth({
         session,
       };
     }),
+    electron(),
+    username(),
   ],
 });

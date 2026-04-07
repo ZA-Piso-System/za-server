@@ -24,6 +24,8 @@ export const users = pgTable("users", {
   role: userRole().notNull().default(Role.User),
   balanceSeconds: integer().notNull().default(0),
   points: integer().notNull().default(0),
+  username: text("username").unique(),
+  displayUsername: text("display_username"),
   createdAt: timestamp()
     .$defaultFn(() => new Date())
     .notNull(),
