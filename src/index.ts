@@ -15,6 +15,7 @@ import adminDashboardRoute from "@/routes/admin/dashboard.route";
 import adminDevicesRoute from "@/routes/admin/devices.route";
 import devicesRoute from "@/routes/devices.route";
 import meRoute from "@/routes/user/me.route";
+import usersRoute from "@/routes/users.route";
 import { serve } from "@hono/node-server";
 import { createNodeWebSocket } from "@hono/node-ws";
 import { and, eq, inArray } from "drizzle-orm";
@@ -39,6 +40,7 @@ app.on(["POST", "GET"], "/api/v1/auth/*", (c) => auth.handler(c.req.raw));
 
 // public routes
 app.route("/api/v1", devicesRoute);
+app.route("/api/v1", usersRoute);
 
 // user routes
 app.use("/api/v1/user/*", authMiddleware);

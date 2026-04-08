@@ -1,3 +1,5 @@
+import { userCoinLogs } from "@/db/schemas/user-coin-logs.schema";
+import { relations } from "drizzle-orm";
 import {
   boolean,
   integer,
@@ -33,3 +35,7 @@ export const users = pgTable("users", {
     .$defaultFn(() => new Date())
     .notNull(),
 });
+
+export const usersRelations = relations(users, ({ many }) => ({
+  userCoinLogs: many(userCoinLogs),
+}));

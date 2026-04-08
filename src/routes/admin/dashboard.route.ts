@@ -1,7 +1,7 @@
 import { CoinLogSearchParamsSchema } from "@/common/schemas/coin-log.schema";
 import { SalesOverviewParamsSchema } from "@/common/schemas/dashboard.schema";
 import db from "@/db";
-import { coinLogs } from "@/db/schemas";
+import { coinLogs, userCoinLogs } from "@/db/schemas";
 import {
   endOfDay,
   startOfDay,
@@ -13,10 +13,12 @@ import {
 import { and, desc, gte, lte, sql, sum } from "drizzle-orm";
 import { Hono } from "hono";
 
+type SourceType = "device" | "user";
+
 const route = new Hono();
 
 route.get("/", async (c) => {
-  const [result] = await db
+  const [resultA] = await db
     .select({ today: sum(coinLogs.amount) })
     .from(coinLogs)
     .where(
@@ -26,9 +28,19 @@ route.get("/", async (c) => {
       ),
     );
 
+  const [resultB] = await db
+    .select({ today: sum(userCoinLogs.amount) })
+    .from(userCoinLogs)
+    .where(
+      and(
+        gte(userCoinLogs.createdAt, startOfDay(new Date())),
+        lte(userCoinLogs.createdAt, endOfDay(new Date())),
+      ),
+    );
+
   return c.json({
     revenue: {
-      today: Number(result.today),
+      today: Number(resultA.today) + Number(resultB.today),
     },
   });
 });
@@ -37,62 +49,167 @@ route.get("/sales-overview", async (c) => {
   const { period } = SalesOverviewParamsSchema.parse(c.req.query());
 
   const today = new Date();
-  let rows: { label: string; value: number }[] = [];
+  let rows: { label: string; device: number; user: number }[] = [];
 
   if (period === "this_week") {
     const weekStart = startOfWeek(today);
 
-    rows = await db
+    const combined = db
       .select({
-        label: sql<string>`TO_CHAR(created_at, 'Dy')`,
-        value: sum(coinLogs.amount).mapWith(Number),
+        amount: coinLogs.amount,
+        createdAt: coinLogs.createdAt,
+        source: sql<SourceType>`'device'`.as("source"),
       })
       .from(coinLogs)
-      .where(and(gte(coinLogs.createdAt, weekStart)))
-      .groupBy(sql`TO_CHAR(created_at, 'Dy')`)
-      .orderBy(sql`MIN(created_at)`);
+      .where(gte(coinLogs.createdAt, weekStart))
+      .unionAll(
+        db
+          .select({
+            amount: userCoinLogs.amount,
+            createdAt: userCoinLogs.createdAt,
+            source: sql<SourceType>`'user'`.as("source"),
+          })
+          .from(userCoinLogs)
+          .where(gte(userCoinLogs.createdAt, weekStart)),
+      )
+      .as("combined");
+
+    rows = await db
+      .select({
+        label: sql<string>`TO_CHAR(${combined.createdAt}, 'Dy')`,
+        device:
+          sql<number>`SUM(CASE WHEN ${combined.source} = 'device' THEN ${combined.amount} ELSE 0 END)`.mapWith(
+            Number,
+          ),
+        user: sql<number>`SUM(CASE WHEN ${combined.source} = 'user' THEN ${combined.amount} ELSE 0 END)`.mapWith(
+          Number,
+        ),
+      })
+      .from(combined)
+      .groupBy(sql`TO_CHAR(${combined.createdAt}, 'Dy')`)
+      .orderBy(sql`MIN(${combined.createdAt})`);
   }
 
   if (period === "this_month") {
     const monthStart = startOfMonth(today);
 
-    rows = await db
+    const combined = db
       .select({
-        label: sql<string>`TO_CHAR(created_at, 'DD')`,
-        value: sum(coinLogs.amount).mapWith(Number),
+        amount: coinLogs.amount,
+        createdAt: coinLogs.createdAt,
+        source: sql<SourceType>`'device'`.as("source"),
       })
       .from(coinLogs)
-      .where(and(gte(coinLogs.createdAt, monthStart)))
-      .groupBy(sql`TO_CHAR(created_at, 'DD')`)
-      .orderBy(sql`MIN(created_at)`);
+      .where(gte(coinLogs.createdAt, monthStart))
+      .unionAll(
+        db
+          .select({
+            amount: userCoinLogs.amount,
+            createdAt: userCoinLogs.createdAt,
+            source: sql<SourceType>`'user'`.as("source"),
+          })
+          .from(userCoinLogs)
+          .where(gte(userCoinLogs.createdAt, monthStart)),
+      )
+      .as("combined");
+
+    rows = await db
+      .select({
+        label: sql<string>`TO_CHAR(${combined.createdAt}, 'DD')`,
+        device: sql<number>`
+        SUM(CASE 
+          WHEN ${combined.source} = 'device' 
+          THEN ${combined.amount} 
+          ELSE 0 
+        END)
+      `.mapWith(Number),
+        user: sql<number>`
+        SUM(CASE 
+          WHEN ${combined.source} = 'user' 
+          THEN ${combined.amount} 
+          ELSE 0 
+        END)
+      `.mapWith(Number),
+      })
+      .from(combined)
+      .groupBy(sql`TO_CHAR(${combined.createdAt}, 'DD')`)
+      .orderBy(sql`MIN(${combined.createdAt})`);
   }
 
   if (period === "last_3_months") {
     const threeMonthsAgo = startOfMonth(subMonths(today, 3));
 
-    rows = await db
+    const combined = db
       .select({
-        label: sql<string>`'Week ' || EXTRACT(WEEK FROM created_at)`,
-        value: sum(coinLogs.amount).mapWith(Number),
+        amount: coinLogs.amount,
+        createdAt: coinLogs.createdAt,
+        source: sql<SourceType>`'device'`.as("source"),
       })
       .from(coinLogs)
-      .where(and(gte(coinLogs.createdAt, threeMonthsAgo)))
-      .groupBy(sql`EXTRACT(WEEK FROM created_at)`)
-      .orderBy(sql`MIN(created_at)`);
+      .where(gte(coinLogs.createdAt, threeMonthsAgo))
+      .unionAll(
+        db
+          .select({
+            amount: userCoinLogs.amount,
+            createdAt: userCoinLogs.createdAt,
+            source: sql<SourceType>`'user'`.as("source"),
+          })
+          .from(userCoinLogs)
+          .where(gte(userCoinLogs.createdAt, threeMonthsAgo)),
+      )
+      .as("combined");
+
+    rows = await db
+      .select({
+        label: sql<string>`'Week ' || EXTRACT(WEEK FROM ${combined.createdAt})`,
+        device: sql<number>`
+        SUM(CASE WHEN ${combined.source} = 'device' THEN ${combined.amount} ELSE 0 END)
+      `.mapWith(Number),
+        user: sql<number>`
+        SUM(CASE WHEN ${combined.source} = 'user' THEN ${combined.amount} ELSE 0 END)
+      `.mapWith(Number),
+      })
+      .from(combined)
+      .groupBy(sql`EXTRACT(WEEK FROM ${combined.createdAt})`)
+      .orderBy(sql`MIN(${combined.createdAt})`);
   }
 
   if (period === "this_year") {
     const yearStart = startOfYear(today);
 
-    rows = await db
+    const combined = db
       .select({
-        label: sql<string>`TO_CHAR(created_at, 'Mon')`,
-        value: sum(coinLogs.amount).mapWith(Number),
+        amount: coinLogs.amount,
+        createdAt: coinLogs.createdAt,
+        source: sql<SourceType>`'device'`.as("source"),
       })
       .from(coinLogs)
-      .where(and(gte(coinLogs.createdAt, yearStart)))
-      .groupBy(sql`TO_CHAR(created_at, 'Mon')`)
-      .orderBy(sql`MIN(created_at)`);
+      .where(gte(coinLogs.createdAt, yearStart))
+      .unionAll(
+        db
+          .select({
+            amount: userCoinLogs.amount,
+            createdAt: userCoinLogs.createdAt,
+            source: sql<SourceType>`'user'`.as("source"),
+          })
+          .from(userCoinLogs)
+          .where(gte(userCoinLogs.createdAt, yearStart)),
+      )
+      .as("combined");
+
+    rows = await db
+      .select({
+        label: sql<string>`TO_CHAR(${combined.createdAt}, 'Mon')`,
+        device: sql<number>`
+        SUM(CASE WHEN ${combined.source} = 'device' THEN ${combined.amount} ELSE 0 END)
+      `.mapWith(Number),
+        user: sql<number>`
+        SUM(CASE WHEN ${combined.source} = 'user' THEN ${combined.amount} ELSE 0 END)
+      `.mapWith(Number),
+      })
+      .from(combined)
+      .groupBy(sql`TO_CHAR(${combined.createdAt}, 'Mon')`)
+      .orderBy(sql`MIN(${combined.createdAt})`);
   }
 
   return c.json(rows);
@@ -128,6 +245,61 @@ route.get("/coin-logs", async (c) => {
         ? and(
             gte(coinLogs.createdAt, new Date(from)),
             lte(coinLogs.createdAt, new Date(to)),
+          )
+        : undefined,
+    ),
+  );
+
+  const totalPages = Math.ceil(total / page_size);
+  const previousPage = page > 1 ? page - 1 : null;
+  const nextPage = page < totalPages ? page + 1 : null;
+
+  return c.json({
+    items,
+    metadata: {
+      current_page: page,
+      previous_page: previousPage,
+      next_page: nextPage,
+      total_count: total,
+      total_pages: totalPages,
+    },
+  });
+});
+
+// TODO: refactor API route
+route.get("/user-coin-logs", async (c) => {
+  const { from, to, page, page_size } = CoinLogSearchParamsSchema.parse(
+    c.req.query(),
+  );
+
+  const items = await db.query.userCoinLogs.findMany({
+    where: and(
+      from && to
+        ? and(
+            gte(userCoinLogs.createdAt, new Date(from)),
+            lte(userCoinLogs.createdAt, new Date(to)),
+          )
+        : undefined,
+    ),
+    limit: page_size,
+    offset: (page - 1) * page_size,
+    orderBy: desc(userCoinLogs.createdAt),
+    with: {
+      user: {
+        columns: {
+          username: true,
+        },
+      },
+    },
+  });
+
+  const total = await db.$count(
+    userCoinLogs,
+    and(
+      from && to
+        ? and(
+            gte(userCoinLogs.createdAt, new Date(from)),
+            lte(userCoinLogs.createdAt, new Date(to)),
           )
         : undefined,
     ),
