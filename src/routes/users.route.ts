@@ -4,7 +4,7 @@ import { UserParamsSchema } from "@/common/schemas/user.schema";
 import db from "@/db";
 import { userCoinLogs, users } from "@/db/schemas";
 import { logger } from "@/lib/pino.lib";
-import { eq, like, sql } from "drizzle-orm";
+import { eq, ilike, sql } from "drizzle-orm";
 import { Hono } from "hono";
 
 const route = new Hono();
@@ -13,7 +13,7 @@ route.get("/users", async (c) => {
   const { username } = UserParamsSchema.parse(c.req.query());
 
   const rows = await db.query.users.findMany({
-    where: like(users.username, `%${username}%`),
+    where: ilike(users.username, `%${username}%`),
     columns: {
       id: true,
       username: true,
