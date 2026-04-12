@@ -4,7 +4,7 @@ import { DeviceStatus } from "@/common/types/device.type";
 import { SessionEvent } from "@/common/types/session-event.type";
 import { Session } from "@/common/types/session.type";
 import db from "@/db";
-import { devices, deviceSessions, users } from "@/db/schemas";
+import { devices, deviceSessions, pointsPackages, users } from "@/db/schemas";
 import { auth } from "@/lib/auth";
 import { clients } from "@/lib/clients";
 import { logger } from "@/lib/pino.lib";
@@ -448,6 +448,60 @@ route.post("/stop-time", async (c) => {
   }
 
   return c.json({ message: "Time stopped successfully." });
+});
+
+route.post("/points-packages/:id/redeem", async (c) => {
+  const id = c.req.param("id");
+  const user = c.get("user");
+
+  logger.info({ id }, "Points Packages Redeem API");
+
+  try {
+    await db.transaction(async (tx) => {
+      const pkg = await tx.query.pointsPackages.findFirst({
+        where: eq(pointsPackages.id, id),
+      });
+
+      if (!pkg) {
+        throw new Error("Package not found");
+      }
+
+      const balance = await tx.query.users.findFirst({
+        columns: {
+          balanceSeconds: true,
+          points: true,
+        },
+        where: eq(users.id, user.id),
+      });
+
+      if (!balance) {
+        throw new Error("User nout found");
+      }
+
+      if (balance.points < pkg.pointsCost) {
+        throw new Error("Not enough points");
+      }
+
+      await tx
+        .update(users)
+        .set({
+          balanceSeconds: sql`${users.balanceSeconds} + ${pkg.timeSeconds}`,
+          points: balance.points - pkg.pointsCost,
+        })
+        .where(eq(users.id, user.id));
+    });
+
+    return c.json({ message: "Points package redeemed successfully." });
+  } catch (error) {
+    logger.error(error);
+
+    return c.json(
+      {
+        message: "Something went wrong",
+      },
+      500,
+    );
+  }
 });
 
 export default route;

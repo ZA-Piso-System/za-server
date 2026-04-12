@@ -16,6 +16,7 @@ import adminDashboardRoute from "@/routes/admin/dashboard.route";
 import adminDevicesRoute from "@/routes/admin/devices.route";
 import devicesRoute from "@/routes/devices.route";
 import meRoute from "@/routes/user/me.route";
+import pointsPackagesRoute from "@/routes/user/points-packages.route";
 import usersRoute from "@/routes/users.route";
 import { serve } from "@hono/node-server";
 import { createNodeWebSocket } from "@hono/node-ws";
@@ -46,6 +47,7 @@ app.route("/api/v1", usersRoute);
 // user routes
 app.use("/api/v1/user/*", authMiddleware);
 app.route("/api/v1/user/me", meRoute);
+app.route("/api/v1/user/points-packages", pointsPackagesRoute);
 
 // admin routes
 app.use("/api/v1/admin/*", adminMiddleware);
