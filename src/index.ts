@@ -4,6 +4,7 @@ import { DeviceStatus } from "@/common/types/device.type";
 import { CustomWebscoket } from "@/common/types/websocket.type";
 import db from "@/db";
 import { devices, deviceSessions } from "@/db/schemas";
+import { startExpiredSessionJob } from "@/jobs/start-expired-session.job";
 import { auth } from "@/lib/auth";
 import { clients } from "@/lib/clients";
 import { eventHandler } from "@/lib/event-handler";
@@ -123,3 +124,4 @@ const server = serve(
 );
 
 injectWebSocket(server);
+startExpiredSessionJob();
