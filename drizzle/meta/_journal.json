@@ -43,6 +43,13 @@
       "when": 1775654226783,
       "tag": "0005_needy_scalphunter",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1775993923271,
+      "tag": "0006_fearless_sabretooth",
+      "breakpoints": true
     }
   ]
 }
