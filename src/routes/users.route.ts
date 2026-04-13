@@ -1,6 +1,6 @@
 import env from "@/common/env.type";
 import { InsertCoinLogSchema } from "@/common/schemas/coin-log.schema";
-import { UserParamsSchema } from "@/common/schemas/user.schema";
+import { UserSearchParamsSchema } from "@/common/schemas/user.schema";
 import db from "@/db";
 import { userCoinLogs, users } from "@/db/schemas";
 import { logger } from "@/lib/pino.lib";
@@ -10,10 +10,10 @@ import { Hono } from "hono";
 const route = new Hono();
 
 route.get("/users", async (c) => {
-  const { username } = UserParamsSchema.parse(c.req.query());
+  const { username } = UserSearchParamsSchema.parse(c.req.query());
 
   const rows = await db.query.users.findMany({
-    where: ilike(users.username, `%${username}%`),
+    where: username ? ilike(users.username, `%${username}%`) : undefined,
     columns: {
       id: true,
       username: true,

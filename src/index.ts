@@ -12,6 +12,7 @@ import { logger } from "@/lib/pino.lib";
 import { adminMiddleware } from "@/middlewares/admin.middleware";
 import { authMiddleware } from "@/middlewares/auth.middleware";
 import adminAccountRoute from "@/routes/admin/account.route";
+import adminUsersRoute from "@/routes/admin/users.route";
 import adminDashboardRoute from "@/routes/admin/dashboard.route";
 import adminDevicesRoute from "@/routes/admin/devices.route";
 import devicesRoute from "@/routes/devices.route";
@@ -54,6 +55,7 @@ app.use("/api/v1/admin/*", adminMiddleware);
 app.route("/api/v1/admin/account", adminAccountRoute);
 app.route("/api/v1/admin/dashboard", adminDashboardRoute);
 app.route("/api/v1/admin/devices", adminDevicesRoute);
+app.route("/api/v1/admin/users", adminUsersRoute);
 
 // websocket
 app.get(
