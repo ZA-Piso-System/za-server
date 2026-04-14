@@ -9,7 +9,7 @@ import { Hono } from "hono";
 
 const route = new Hono();
 
-route.get("/users", async (c) => {
+route.get("/", async (c) => {
   const { username } = UserSearchParamsSchema.parse(c.req.query());
 
   const rows = await db.query.users.findMany({
@@ -26,7 +26,7 @@ route.get("/users", async (c) => {
 });
 
 // TODO: refactor
-route.post("/users/:id/topup", async (c) => {
+route.post("/:id/topup", async (c) => {
   const apiKey = c.req.raw.headers.get("x-api-key");
   if (apiKey !== env.COIN_SLOT_SECRET) {
     return c.json({ message: "Unauthorized" }, 401);

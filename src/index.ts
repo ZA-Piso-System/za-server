@@ -1,4 +1,5 @@
 import env from "@/common/env.type";
+import { errorHandler } from "@/common/error-handler";
 import { DeviceSessionStatus } from "@/common/types/device-session.type";
 import { DeviceStatus } from "@/common/types/device.type";
 import { CustomWebscoket } from "@/common/types/websocket.type";
@@ -11,10 +12,11 @@ import { eventHandler } from "@/lib/event-handler";
 import { logger } from "@/lib/pino.lib";
 import { adminMiddleware } from "@/middlewares/admin.middleware";
 import { authMiddleware } from "@/middlewares/auth.middleware";
+import { pinoLoggerMiddleware } from "@/middlewares/pino-logger.middleware";
 import adminAccountRoute from "@/routes/admin/account.route";
-import adminUsersRoute from "@/routes/admin/users.route";
 import adminDashboardRoute from "@/routes/admin/dashboard.route";
 import adminDevicesRoute from "@/routes/admin/devices.route";
+import adminUsersRoute from "@/routes/admin/users.route";
 import devicesRoute from "@/routes/devices.route";
 import meRoute from "@/routes/user/me.route";
 import pointsPackagesRoute from "@/routes/user/points-packages.route";
@@ -38,12 +40,14 @@ app.use(
   }),
 );
 
+// app.use(pinoLoggerMiddleware());
+
 // better auth
 app.on(["POST", "GET"], "/api/v1/auth/*", (c) => auth.handler(c.req.raw));
 
 // public routes
-app.route("/api/v1", devicesRoute);
-app.route("/api/v1", usersRoute);
+app.route("/api/v1/devices", devicesRoute);
+app.route("/api/v1/users", usersRoute);
 
 // user routes
 app.use("/api/v1/user/*", authMiddleware);
@@ -116,6 +120,8 @@ app.get(
     };
   }),
 );
+
+app.onError(errorHandler);
 
 const server = serve(
   {

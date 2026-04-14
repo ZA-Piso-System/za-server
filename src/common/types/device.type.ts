@@ -1,3 +1,8 @@
+import { devices } from "@/db/schemas";
+import { InferSelectModel } from "drizzle-orm";
+
+export type Device = InferSelectModel<typeof devices>;
+
 export const DeviceType = {
   Pc: "pc",
   Tablet: "tablet",
