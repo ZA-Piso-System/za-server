@@ -231,7 +231,17 @@ export const eventHandler = async (
         ws.deviceId = payload.id;
         clients.set(payload.id, { ...payload, ws });
 
-        // Update device session lastSeen if available
+        await db
+          .update(deviceSessions)
+          .set({
+            lastSeen: new Date(),
+          })
+          .where(
+            and(
+              eq(deviceSessions.deviceId, payload.id),
+              eq(deviceSessions.status, DeviceSessionStatus.Active),
+            ),
+          );
       }
       break;
     default:
