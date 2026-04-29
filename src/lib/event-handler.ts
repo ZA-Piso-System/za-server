@@ -29,7 +29,7 @@ export const eventHandler = async (
         ws.deviceId = payload.id;
         clients.set(payload.id, { id: payload.id, ws });
 
-        logger.info(
+        logger.debug(
           {
             deviceNumber: device.deviceNumber,
             type: device.type,
@@ -42,7 +42,7 @@ export const eventHandler = async (
           .set({ status: DeviceStatus.Online })
           .where(eq(devices.id, payload.id));
 
-        logger.info(
+        logger.debug(
           {
             deviceNumber: device.deviceNumber,
             type: device.type,
@@ -61,7 +61,7 @@ export const eventHandler = async (
         });
 
         if (!pendingOrActiveSession) {
-          logger.info(
+          logger.debug(
             {
               deviceNumber: device.deviceNumber,
               type: device.type,
@@ -81,7 +81,7 @@ export const eventHandler = async (
           return;
         }
 
-        logger.info(
+        logger.debug(
           {
             deviceNumber: device.deviceNumber,
             type: device.type,
@@ -90,7 +90,7 @@ export const eventHandler = async (
         );
 
         if (pendingOrActiveSession.status === DeviceSessionStatus.Pending) {
-          logger.info(
+          logger.debug(
             {
               deviceNumber: device.deviceNumber,
               type: device.type,
@@ -103,7 +103,7 @@ export const eventHandler = async (
             Date.now() + pendingOrActiveSession.allocatedSeconds * 1_000,
           );
 
-          logger.info(
+          logger.debug(
             {
               deviceNumber: device.deviceNumber,
               type: device.type,
@@ -119,7 +119,7 @@ export const eventHandler = async (
             })
             .where(eq(deviceSessions.id, pendingOrActiveSession.id));
 
-          logger.info(
+          logger.debug(
             {
               deviceNumber: device.deviceNumber,
               type: device.type,
@@ -142,7 +142,7 @@ export const eventHandler = async (
         }
 
         if (pendingOrActiveSession.status === DeviceSessionStatus.Active) {
-          logger.info(
+          logger.debug(
             {
               deviceNumber: device.deviceNumber,
               type: device.type,
@@ -154,7 +154,7 @@ export const eventHandler = async (
           const endAt = pendingOrActiveSession.endAt;
 
           if (startAt && endAt) {
-            logger.info(
+            logger.debug(
               {
                 deviceNumber: device.deviceNumber,
                 type: device.type,
@@ -164,7 +164,7 @@ export const eventHandler = async (
             const remainingMs = Math.max(0, endAt.getTime() - Date.now());
 
             if (remainingMs <= 0) {
-              logger.info(
+              logger.debug(
                 {
                   deviceNumber: device.deviceNumber,
                   type: device.type,
@@ -179,7 +179,7 @@ export const eventHandler = async (
                 })
                 .where(eq(deviceSessions.id, pendingOrActiveSession.id));
 
-              logger.info(
+              logger.debug(
                 {
                   deviceNumber: device.deviceNumber,
                   type: device.type,
@@ -197,7 +197,7 @@ export const eventHandler = async (
                 }),
               );
             } else {
-              logger.info(
+              logger.debug(
                 {
                   deviceNumber: device.deviceNumber,
                   type: device.type,
