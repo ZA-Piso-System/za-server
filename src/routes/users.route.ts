@@ -40,7 +40,7 @@ route.post("/:id/topup", async (c) => {
   logger.info({ id, amount: parsedData.amount }, "Top Up API");
 
   if (seconds <= 0) {
-    logger.info({ id }, "Invalid time");
+    logger.debug({ id }, "Invalid time");
     return c.json({ message: "Invalid time" }, 400);
   }
 

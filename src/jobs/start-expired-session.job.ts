@@ -8,6 +8,7 @@ import { and, eq, lte } from "drizzle-orm";
 
 export const startExpiredSessionJob = () => {
   logger.info("Starting expired session job");
+
   setInterval(async () => {
     const expiredSessions = await db.query.deviceSessions.findMany({
       where: and(
@@ -17,7 +18,7 @@ export const startExpiredSessionJob = () => {
     });
 
     for (const expiredSession of expiredSessions) {
-      logger.info(
+      logger.debug(
         { id: expiredSession.id },
         "Terminating expired device session",
       );

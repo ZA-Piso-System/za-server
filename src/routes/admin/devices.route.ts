@@ -59,7 +59,8 @@ route.post("/:id/stop", async (c) => {
 
   logger.info({ id }, "Stop session API");
 
-  logger.info({ id }, "Updating session to Terminated");
+  logger.debug({ id }, "Updating session to Terminated");
+
   await db
     .update(deviceSessions)
     .set({

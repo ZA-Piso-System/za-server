@@ -102,7 +102,7 @@ app.get(
             const remainingMs = Math.max(0, endAt.getTime() - Date.now());
 
             if (remainingMs <= 0) {
-              logger.info(
+              logger.debug(
                 { id: client.id },
                 "Already expired. Updating device session to Expired",
               );

@@ -49,15 +49,15 @@ route.post("/use-time", async (c) => {
   const id = parsedData.id;
   const seconds = result?.balanceSeconds ?? 0;
 
+  logger.info({ id }, "Use Time API");
+
   await db
     .update(users)
     .set({ balanceSeconds: 0 })
     .where(eq(users.id, user.id));
 
-  logger.info({ id }, "Use Time API");
-
   if (seconds <= 0) {
-    logger.info({ id }, "Invalid time");
+    logger.debug({ id }, "Invalid time");
     return c.json({ message: "Invalid time" }, 400);
   }
 
@@ -66,12 +66,12 @@ route.post("/use-time", async (c) => {
   });
 
   if (!device) {
-    logger.info({ id }, "Device not found");
+    logger.debug({ id }, "Device not found");
     return c.json({ message: "Device not found." }, 404);
   }
 
   if (!device.macAddress || device.status === DeviceStatus.Pending) {
-    logger.info(
+    logger.debug(
       {
         deviceNumber: device.deviceNumber,
         type: device.type,
@@ -95,7 +95,7 @@ route.post("/use-time", async (c) => {
     pendingOrActiveSession &&
     pendingOrActiveSession.status === DeviceSessionStatus.Active
   ) {
-    logger.info(
+    logger.debug(
       {
         deviceNumber: device.deviceNumber,
         type: device.type,
@@ -107,7 +107,7 @@ route.post("/use-time", async (c) => {
     const endAt = pendingOrActiveSession.endAt;
 
     if (startAt && endAt) {
-      logger.info(
+      logger.debug(
         {
           deviceNumber: device.deviceNumber,
           type: device.type,
@@ -117,7 +117,7 @@ route.post("/use-time", async (c) => {
       const remainingMs = Math.max(0, endAt.getTime() - Date.now());
 
       if (remainingMs <= 0) {
-        logger.info(
+        logger.debug(
           {
             deviceNumber: device.deviceNumber,
             type: device.type,
@@ -138,7 +138,7 @@ route.post("/use-time", async (c) => {
   }
 
   if (device.status === DeviceStatus.Offline) {
-    logger.info(
+    logger.debug(
       {
         deviceNumber: device.deviceNumber,
         type: device.type,
@@ -148,7 +148,7 @@ route.post("/use-time", async (c) => {
 
     // No pending/active session
     if (!pendingOrActiveSession) {
-      logger.info(
+      logger.debug(
         {
           deviceNumber: device.deviceNumber,
           type: device.type,
@@ -166,7 +166,7 @@ route.post("/use-time", async (c) => {
         })
         .returning();
     } else {
-      logger.info(
+      logger.debug(
         {
           deviceNumber: device.deviceNumber,
           type: device.type,
@@ -199,7 +199,7 @@ route.post("/use-time", async (c) => {
       })
       .where(eq(devices.id, device.id));
 
-    logger.info(
+    logger.debug(
       {
         deviceNumber: device.deviceNumber,
         type: device.type,
@@ -210,7 +210,7 @@ route.post("/use-time", async (c) => {
   }
 
   if (device.status === DeviceStatus.Starting) {
-    logger.info(
+    logger.debug(
       {
         deviceNumber: device.deviceNumber,
         type: device.type,
@@ -220,7 +220,7 @@ route.post("/use-time", async (c) => {
 
     // No pending/active session
     if (!pendingOrActiveSession) {
-      logger.info(
+      logger.debug(
         {
           deviceNumber: device.deviceNumber,
           type: device.type,
@@ -238,7 +238,7 @@ route.post("/use-time", async (c) => {
         })
         .returning();
     } else {
-      logger.info(
+      logger.debug(
         {
           deviceNumber: device.deviceNumber,
           type: device.type,
@@ -266,7 +266,7 @@ route.post("/use-time", async (c) => {
   }
 
   if (device.status === DeviceStatus.Online) {
-    logger.info(
+    logger.debug(
       {
         deviceNumber: device.deviceNumber,
         type: device.type,
@@ -279,7 +279,7 @@ route.post("/use-time", async (c) => {
 
     // No pending/active session
     if (!pendingOrActiveSession) {
-      logger.info(
+      logger.debug(
         {
           deviceNumber: device.deviceNumber,
           type: device.type,
@@ -302,7 +302,7 @@ route.post("/use-time", async (c) => {
         })
         .returning();
     } else {
-      logger.info(
+      logger.debug(
         {
           deviceNumber: device.deviceNumber,
           type: device.type,
@@ -332,7 +332,7 @@ route.post("/use-time", async (c) => {
     const serverClient = clients.get(id);
 
     if (serverClient) {
-      logger.info(
+      logger.debug(
         {
           deviceNumber: device.deviceNumber,
           type: device.type,
@@ -369,12 +369,12 @@ route.post("/stop-time", async (c) => {
   });
 
   if (!device) {
-    logger.info({ id }, "Device not found");
+    logger.debug({ id }, "Device not found");
     return c.json({ message: "Device not found." }, 404);
   }
 
   if (!device.macAddress || device.status === DeviceStatus.Pending) {
-    logger.info(
+    logger.debug(
       {
         deviceNumber: device.deviceNumber,
         type: device.type,
@@ -398,7 +398,7 @@ route.post("/stop-time", async (c) => {
     pendingOrActiveSession &&
     pendingOrActiveSession.status === DeviceSessionStatus.Active
   ) {
-    logger.info(
+    logger.debug(
       {
         deviceNumber: device.deviceNumber,
         type: device.type,
@@ -410,7 +410,7 @@ route.post("/stop-time", async (c) => {
     const endAt = pendingOrActiveSession.endAt;
 
     if (startAt && endAt) {
-      logger.info(
+      logger.debug(
         {
           userId: user.id,
           deviceNumber: device.deviceNumber,
