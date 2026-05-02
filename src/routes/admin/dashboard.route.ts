@@ -1,7 +1,7 @@
 import { CoinLogSearchParamsSchema } from "@/common/schemas/coin-log.schema";
 import { SalesOverviewParamsSchema } from "@/common/schemas/dashboard.schema";
 import db from "@/db";
-import { coinLogs, userCoinLogs } from "@/db/schemas";
+import { coinLogs, userCoinLogs, users } from "@/db/schemas";
 import {
   endOfDay,
   startOfDay,
@@ -38,10 +38,13 @@ route.get("/", async (c) => {
       ),
     );
 
+  const totalUsers = await db.$count(users);
+
   return c.json({
     revenue: {
       today: Number(resultA.today) + Number(resultB.today),
     },
+    totalUsers,
   });
 });
 
