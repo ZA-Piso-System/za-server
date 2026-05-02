@@ -4,6 +4,7 @@ import db from "@/db";
 import { coinLogs, userCoinLogs, users } from "@/db/schemas";
 import {
   endOfDay,
+  endOfMonth,
   startOfDay,
   startOfMonth,
   startOfWeek,
@@ -18,7 +19,7 @@ type SourceType = "device" | "user";
 const route = new Hono();
 
 route.get("/", async (c) => {
-  const [resultA] = await db
+  const [coinRevenueToday] = await db
     .select({ today: sum(coinLogs.amount) })
     .from(coinLogs)
     .where(
@@ -28,7 +29,7 @@ route.get("/", async (c) => {
       ),
     );
 
-  const [resultB] = await db
+  const [userRevenueToday] = await db
     .select({ today: sum(userCoinLogs.amount) })
     .from(userCoinLogs)
     .where(
@@ -38,11 +39,33 @@ route.get("/", async (c) => {
       ),
     );
 
+  const [coinRevenueMonthly] = await db
+    .select({ total: sum(coinLogs.amount) })
+    .from(coinLogs)
+    .where(
+      and(
+        gte(coinLogs.createdAt, startOfMonth(new Date())),
+        lte(coinLogs.createdAt, endOfMonth(new Date())),
+      ),
+    );
+
+  const [userRevenueMonthly] = await db
+    .select({ total: sum(userCoinLogs.amount) })
+    .from(userCoinLogs)
+    .where(
+      and(
+        gte(userCoinLogs.createdAt, startOfMonth(new Date())),
+        lte(userCoinLogs.createdAt, endOfMonth(new Date())),
+      ),
+    );
+
   const totalUsers = await db.$count(users);
 
   return c.json({
     revenue: {
-      today: Number(resultA.today) + Number(resultB.today),
+      today: Number(coinRevenueToday.today) + Number(userRevenueToday.today),
+      monthly:
+        Number(coinRevenueMonthly.total) + Number(userRevenueMonthly.total),
     },
     totalUsers,
   });
