@@ -13,7 +13,7 @@ import wakeonlan from "wakeonlan";
 export const addTime = async (
   deviceId: string,
   seconds: number,
-  source: "add-time" | "insert-coin",
+  source: "add-time" | "insert-coin" | "use-time",
 ) => {
   logger.debug({ deviceId, seconds, source }, "Adding time to device");
 
