@@ -20,6 +20,13 @@ route.get("/", async (c) => {
           DeviceSessionStatus.Pending,
           DeviceSessionStatus.Active,
         ]),
+        with: {
+          user: {
+            columns: {
+              username: true,
+            },
+          },
+        },
       },
     },
   });
