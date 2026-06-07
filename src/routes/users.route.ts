@@ -1,3 +1,4 @@
+import { MINUTES_PER_PESO } from "@/common/constants/app.constant";
 import env from "@/common/env.type";
 import { InsertCoinLogSchema } from "@/common/schemas/coin-log.schema";
 import { UserSearchParamsSchema } from "@/common/schemas/user.schema";
@@ -35,7 +36,7 @@ route.post("/:id/topup", async (c) => {
   const id = c.req.param("id");
 
   const parsedData = InsertCoinLogSchema.parse(await c.req.json());
-  const seconds = parsedData.amount * 4 * 60;
+  const seconds = parsedData.amount * MINUTES_PER_PESO * 60;
 
   logger.info({ id, amount: parsedData.amount }, "Top Up API");
 

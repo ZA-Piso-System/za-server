@@ -1,3 +1,4 @@
+import { MINUTES_PER_PESO } from "@/common/constants/app.constant";
 import env from "@/common/env.type";
 import { InsertCoinLogSchema } from "@/common/schemas/coin-log.schema";
 import { RegisterDeviceSchema } from "@/common/schemas/device.schema";
@@ -80,7 +81,7 @@ route.post("/:id/insert-coin", async (c) => {
 
   const parsedData = InsertCoinLogSchema.parse(await c.req.json());
   const amount = parsedData.amount;
-  const seconds = amount * 4 * 60;
+  const seconds = amount * MINUTES_PER_PESO * 60;
 
   const session = await addTime(id, seconds, "insert-coin");
 
