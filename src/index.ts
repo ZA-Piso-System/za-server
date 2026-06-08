@@ -20,6 +20,7 @@ import adminUsersRoute from "@/routes/admin/users.route";
 import devicesRoute from "@/routes/devices.route";
 import meRoute from "@/routes/user/me.route";
 import pointsPackagesRoute from "@/routes/user/points-packages.route";
+import topPlayersRoute from "@/routes/top-players.route";
 import usersRoute from "@/routes/users.route";
 import { serve } from "@hono/node-server";
 import { createNodeWebSocket } from "@hono/node-ws";
@@ -47,6 +48,7 @@ app.on(["POST", "GET"], "/api/v1/auth/*", (c) => auth.handler(c.req.raw));
 
 // public routes
 app.route("/api/v1/devices", devicesRoute);
+app.route("/api/v1/top-players", topPlayersRoute);
 app.route("/api/v1/users", usersRoute);
 
 // user routes
