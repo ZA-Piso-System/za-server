@@ -50,10 +50,12 @@ app.on(["POST", "GET"], "/api/v1/auth/*", (c) => auth.handler(c.req.raw));
 app.route("/api/v1/devices", devicesRoute);
 app.route("/api/v1/top-players", topPlayersRoute);
 app.route("/api/v1/users", usersRoute);
+app.route("/api/v1/points-packages", pointsPackagesRoute);
 
 // user routes
 app.use("/api/v1/user/*", authMiddleware);
 app.route("/api/v1/user/me", meRoute);
+// TODO: remove and update pc client
 app.route("/api/v1/user/points-packages", pointsPackagesRoute);
 
 // admin routes
